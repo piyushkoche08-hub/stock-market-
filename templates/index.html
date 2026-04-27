@@ -1,0 +1,358 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Stock Predictor Pro | Institutional Trading Terminal</title>
+    
+    <!-- External Assets -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/lightweight-charts/dist/lightweight-charts.standalone.production.js"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" />
+    
+    <!-- Custom CSS -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        background: '#060912',
+                        surface: '#0B0F1A',
+                        primary: '#3B82F6',
+                        secondary: '#00D09C',
+                        error: '#EB5B3C',
+                    }
+                }
+            }
+        }
+    </script>
+</head>
+<body class="bg-background text-slate-200 antialiased selection:bg-primary/30">
+
+    <!-- Loading Screen -->
+    <div id="loading-overlay" class="fixed inset-0 z-[100] flex flex-col items-center justify-center bg-background/90 backdrop-blur-xl transition-all duration-500">
+        <div class="premium-loader mb-6"></div>
+        <h2 class="text-xl font-bold tracking-tight text-white animate-pulse">SYNCING MARKET DATA</h2>
+    </div>
+
+    <!-- Sidebar Navigation -->
+    <aside id="sidebar" class="fixed left-0 top-0 z-50 h-full w-64 bg-surface/80 backdrop-blur-2xl border-r border-white/5 transition-all duration-300 hidden lg:flex flex-col py-8">
+        <div class="px-8 mb-12 flex items-center justify-between">
+            <h1 class="text-xl font-black tracking-tighter text-white flex items-center gap-2">
+                <span class="w-8 h-8 bg-primary rounded-lg flex items-center justify-center">
+                    <span class="material-symbols-outlined text-white text-lg">bolt</span>
+                </span>
+                <span>PREDICTOR <span class="text-primary">PRO</span></span>
+            </h1>
+            <button id="sidebar-toggle" class="lg:flex hidden p-1 hover:bg-white/5 rounded transition-all text-slate-500 hover:text-white">
+                <span class="material-symbols-outlined text-xl">menu_open</span>
+            </button>
+        </div>
+
+        <nav class="flex-1 px-4 space-y-1">
+            <a href="{{ url_for('index') }}" class="sidebar-item active">
+                <span class="material-symbols-outlined">dashboard</span>
+                <span class="font-semibold text-sm">Dashboard</span>
+            </a>
+            <a href="{{ url_for('markets') }}" class="sidebar-item">
+                <span class="material-symbols-outlined">monitoring</span>
+                <span class="font-semibold text-sm">Markets</span>
+            </a>
+            <a href="{{ url_for('reports') }}" class="sidebar-item">
+                <span class="material-symbols-outlined">description</span>
+                <span class="font-semibold text-sm">Reports</span>
+            </a>
+            <a href="{{ url_for('portfolio') }}" class="sidebar-item">
+                <span class="material-symbols-outlined">account_balance_wallet</span>
+                <span class="font-semibold text-sm">Portfolio</span>
+            </a>
+
+            <div class="pt-8 pb-2 px-4">
+                <span class="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Market Watch</span>
+            </div>
+            <div id="popular-stocks-list" class="space-y-1 overflow-y-auto max-h-[300px] custom-scrollbar px-2">
+                <!-- Populated by JS -->
+            </div>
+        </nav>
+
+        <div class="px-4 mt-auto">
+            <div class="glass-panel p-4 bg-primary/5 border-primary/20">
+                <p class="text-[10px] font-bold text-primary uppercase mb-1">PRO ACCESS</p>
+                <p class="text-xs text-slate-400 mb-3">Unlock institutional-grade AI signals.</p>
+                <button class="w-full bg-primary hover:bg-primary/80 py-2 rounded-lg text-xs font-bold transition-all">UPGRADE NOW</button>
+            </div>
+        </div>
+    </aside>
+
+    <!-- Top Floating Navbar -->
+    <header class="fixed top-0 right-0 left-0 lg:left-64 z-40 h-20 px-8 flex items-center justify-between pointer-events-none">
+        <div class="glass-panel w-full h-14 flex items-center justify-between px-6 pointer-events-auto border-white/5 bg-surface/40">
+            <div class="flex items-center flex-1 max-w-xl relative">
+                <span class="material-symbols-outlined text-slate-500 mr-3">search</span>
+                <input id="ticker-input" type="text" autocomplete="off" placeholder="Search assets (e.g. RELIANCE, TCS, AAPL)..." 
+                    class="bg-transparent border-none focus:ring-0 text-sm w-full font-medium placeholder:text-slate-600">
+                
+                <!-- Advanced Search Dropdown -->
+                <div id="search-results-dropdown" class="hidden absolute top-full left-0 right-0 mt-2 bg-surface border border-white/10 rounded-xl shadow-2xl z-50 overflow-hidden backdrop-blur-2xl bg-surface/90">
+                    <div id="search-results-content" class="max-h-[400px] overflow-y-auto custom-scrollbar">
+                        <!-- Dynamic Results -->
+                    </div>
+                </div>
+            </div>
+            
+            <div class="flex items-center gap-4">
+                <button class="p-2 text-slate-400 hover:text-white transition-colors">
+                    <span class="material-symbols-outlined text-xl">notifications</span>
+                </button>
+                <button class="p-2 text-slate-400 hover:text-white transition-colors">
+                    <span class="material-symbols-outlined text-xl">settings</span>
+                </button>
+                <div class="h-8 w-px bg-white/10 mx-2"></div>
+                <button class="btn-primary flex items-center gap-2 group">
+                    <span class="material-symbols-outlined text-sm transition-transform group-hover:rotate-12">currency_exchange</span>
+                    <span class="text-xs tracking-tight">TRADE NOW</span>
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Content Canvas -->
+    <main class="lg:ml-64 pt-28 pb-12 px-8 min-h-screen">
+        <div id="error-message" class="hidden glass-panel p-4 mb-8 bg-error/10 border-error/20 text-error text-sm text-center">
+            <span id="error-text"></span>
+        </div>
+
+        <div class="dashboard-grid">
+            
+            <!-- Hero Stock Section (8 Columns) -->
+            <section class="col-span-12 lg:col-span-8 space-y-6 animate-fade-in">
+                <div class="flex flex-col md:flex-row justify-between items-start md:items-end gap-6 bg-surface/30 p-6 rounded-2xl border border-white/5">
+                    <div class="flex items-center gap-6">
+                        <div id="ticker-logo" class="w-16 h-16 rounded-2xl bg-primary/10 border border-primary/20 flex items-center justify-center">
+                            <span id="ticker-initial" class="text-primary font-black text-2xl">?</span>
+                        </div>
+                        <div>
+                            <div class="flex items-center gap-2 mb-1">
+                                <h1 id="company-name" class="text-4xl font-black tracking-tight text-white">Select Asset</h1>
+                                <span id="ticker-symbol" class="bg-white/5 text-slate-500 text-[10px] px-2 py-0.5 rounded font-bold uppercase tracking-widest">TICKER</span>
+                            </div>
+                            <p class="text-slate-500 font-semibold text-xs uppercase tracking-widest">
+                                <span id="company-sector">Market</span> • <span id="company-industry">Analysis</span>
+                            </p>
+                        </div>
+                    </div>
+                    <div class="text-left md:text-right">
+                        <div class="flex items-center md:justify-end gap-4 mb-1">
+                            <span id="current-price" class="text-4xl font-black text-secondary tracking-tighter">$0.00</span>
+                            <div id="price-change-container" class="flex items-center px-2 py-1 rounded-lg text-sm font-bold bg-secondary/10 text-secondary">
+                                <span id="price-change-icon" class="material-symbols-outlined text-sm mr-1">arrow_upward</span>
+                                <span id="price-change">0.00%</span>
+                            </div>
+                        </div>
+                        <div class="flex items-center md:justify-end gap-2 text-slate-600 text-[10px] font-bold uppercase tracking-widest">
+                            <span class="w-2 h-2 rounded-full bg-secondary animate-pulse"></span>
+                            LIVE MARKET DATA
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Main Chart Interface -->
+                <div class="glass-panel p-6 relative group overflow-hidden flex flex-col min-h-[600px]">
+                        <div class="flex flex-col sm:flex-row justify-between items-center mb-4 gap-4">
+                        <div class="flex items-center gap-4">
+                            <h3 class="text-lg font-bold text-white tracking-tight">Market Performance</h3>
+                            <div class="flex bg-white/5 p-1 rounded-lg">
+                                <button id="btn-line-chart" class="px-4 py-1.5 text-[10px] font-bold text-slate-500 hover:text-white rounded-md transition-all">LINE</button>
+                                <button id="btn-candle-chart" class="px-4 py-1.5 text-[10px] font-bold bg-primary text-white shadow-lg shadow-primary/20 rounded-md transition-all">CANDLE</button>
+                            </div>
+                        </div>
+                        <div id="interval-selector" class="flex bg-white/5 p-1 rounded-lg flex-wrap gap-1 overflow-x-auto no-scrollbar max-w-full">
+                            <button class="interval-btn px-2 py-1 text-[9px] font-bold text-slate-500 hover:text-white rounded transition-all whitespace-nowrap" data-interval="1m">1M</button>
+                            <button class="interval-btn px-2 py-1 text-[9px] font-bold text-slate-500 hover:text-white rounded transition-all whitespace-nowrap" data-interval="3m">3M</button>
+                            <button class="interval-btn px-2 py-1 text-[9px] font-bold text-slate-500 hover:text-white rounded transition-all whitespace-nowrap" data-interval="5m">5M</button>
+                            <button class="interval-btn px-2 py-1 text-[9px] font-bold text-slate-500 hover:text-white rounded transition-all whitespace-nowrap" data-interval="10m">10M</button>
+                            <button class="interval-btn px-2 py-1 text-[9px] font-bold text-slate-500 hover:text-white rounded transition-all whitespace-nowrap" data-interval="15m">15M</button>
+                            <button class="interval-btn px-2 py-1 text-[9px] font-bold text-slate-500 hover:text-white rounded transition-all whitespace-nowrap" data-interval="30m">30M</button>
+                            <button class="interval-btn px-2 py-1 text-[9px] font-bold text-slate-500 hover:text-white rounded transition-all whitespace-nowrap" data-interval="1h">1H</button>
+                            <button class="interval-btn px-2 py-1 text-[9px] font-bold text-slate-500 hover:text-white rounded transition-all whitespace-nowrap" data-interval="3h">3H</button>
+                            <button class="interval-btn px-2 py-1 text-[9px] font-bold text-slate-500 hover:text-white rounded transition-all whitespace-nowrap" data-interval="6h">6H</button>
+                            <button class="interval-btn px-2 py-1 text-[9px] font-bold text-slate-500 hover:text-white rounded transition-all whitespace-nowrap" data-interval="1M">1MO</button>
+                            <button class="interval-btn px-2 py-1 text-[9px] font-bold text-slate-500 hover:text-white rounded transition-all whitespace-nowrap" data-interval="3M">3MO</button>
+                            <button class="interval-btn px-2 py-1 text-[9px] font-bold text-slate-500 hover:text-white rounded transition-all whitespace-nowrap" data-interval="6M">6MO</button>
+                            <button class="interval-btn px-2 py-1 text-[9px] font-bold bg-primary text-white rounded shadow-lg shadow-primary/20 transition-all whitespace-nowrap" data-interval="1Y">1Y</button>
+                            <button class="interval-btn px-2 py-1 text-[9px] font-bold text-slate-500 hover:text-white rounded transition-all whitespace-nowrap" data-interval="3Y">3Y</button>
+                            <button class="interval-btn px-2 py-1 text-[9px] font-bold text-slate-500 hover:text-white rounded transition-all whitespace-nowrap" data-interval="6Y">6Y</button>
+                        </div>
+                    </div>
+
+                    <!-- Indicator Toggles -->
+                    <div class="flex gap-2 mb-4 overflow-x-auto no-scrollbar">
+                        <button id="toggle-ema" class="px-3 py-1 text-[9px] font-bold border border-white/10 rounded-full text-slate-400 hover:bg-white/5 transition-all flex items-center gap-1">
+                            <span class="material-symbols-outlined text-[14px]">polyline</span> EMA
+                        </button>
+                        <button id="toggle-macd" class="px-3 py-1 text-[9px] font-bold border border-white/10 rounded-full text-slate-400 hover:bg-white/5 transition-all flex items-center gap-1">
+                            <span class="material-symbols-outlined text-[14px]">analytics</span> MACD
+                        </button>
+                        <button id="toggle-rsi" class="px-3 py-1 text-[9px] font-bold border border-white/10 rounded-full text-slate-400 hover:bg-white/5 transition-all flex items-center gap-1">
+                            <span class="material-symbols-outlined text-[14px]">waves</span> RSI
+                        </button>
+                        <button id="toggle-volume" class="px-3 py-1 text-[9px] font-bold bg-primary/20 text-primary border border-primary/20 rounded-full flex items-center gap-1">
+                            <span class="material-symbols-outlined text-[14px]">bar_chart</span> VOLUME
+                        </button>
+                    </div>
+                    
+                    <div id="tv-chart-container" class="flex-1 min-h-[480px]">
+                        <!-- Chart Injection -->
+                    </div>
+                </div>
+
+                <!-- Secondary Data Grid -->
+                <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+                    <div class="glass-card flex flex-col justify-between">
+                        <p class="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-4">Market Cap</p>
+                        <p id="market-cap" class="text-xl font-black text-white">$0.00</p>
+                    </div>
+                    <div class="glass-card flex flex-col justify-between">
+                        <p class="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-4">Volume (24h)</p>
+                        <p id="volume" class="text-xl font-black text-white">0.00</p>
+                    </div>
+                    <div class="glass-card flex flex-col justify-between border-secondary/20">
+                        <p class="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-4">52W High</p>
+                        <p id="52w-high" class="text-xl font-black text-secondary">$0.00</p>
+                    </div>
+                    <div class="glass-card flex flex-col justify-between border-error/20">
+                        <p class="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-4">52W Low</p>
+                        <p id="52w-low" class="text-xl font-black text-error">$0.00</p>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Sidebar Insights (4 Columns) -->
+            <aside class="col-span-12 lg:col-span-4 space-y-6">
+                
+                <!-- AI Prediction Intelligence -->
+                <section class="glass-panel p-6 border-primary/20 relative overflow-hidden group">
+                    <div class="absolute top-0 right-0 p-4 opacity-10 transition-opacity group-hover:opacity-20">
+                        <span class="material-symbols-outlined text-6xl text-primary animate-pulse">psychology</span>
+                    </div>
+                    
+                    <h3 class="text-lg font-bold text-white mb-6 flex items-center gap-2">
+                        <span class="w-1.5 h-1.5 rounded-full bg-primary"></span>
+                        AI ANALYTICS HUB
+                    </h3>
+
+                    <div class="space-y-6">
+                        <div class="flex justify-between items-center p-4 bg-white/5 rounded-xl border border-white/5">
+                            <div>
+                                <p class="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1">Market Trend</p>
+                                <h4 id="market-trend-text" class="text-lg font-black text-white">Neutral</h4>
+                            </div>
+                            <div id="market-trend-icon-container" class="w-12 h-12 rounded-xl flex items-center justify-center bg-slate-800">
+                                <span id="market-trend-icon" class="material-symbols-outlined text-slate-500">horizontal_rule</span>
+                            </div>
+                        </div>
+
+                        <div class="p-5 bg-primary/5 rounded-2xl border border-primary/10">
+                            <div class="flex justify-between items-center mb-6">
+                                <div>
+                                    <p class="text-[10px] font-bold text-slate-500 uppercase mb-1">Recommendation</p>
+                                    <span id="recommendation-badge" class="px-3 py-1 rounded-md bg-slate-800 text-slate-400 font-black text-xs uppercase tracking-tighter">WAITING...</span>
+                                </div>
+                                <div class="text-right">
+                                    <p class="text-[10px] font-bold text-slate-500 uppercase mb-1">Target</p>
+                                    <p id="target-forecast-price" class="text-xl font-black text-primary">$0.00</p>
+                                </div>
+                            </div>
+
+                            <div class="space-y-2">
+                                <div class="flex justify-between text-[10px] font-bold uppercase tracking-tighter">
+                                    <span class="text-slate-500">Signal Confidence</span>
+                                    <span id="confidence-percent" class="text-primary">0%</span>
+                                </div>
+                                <div class="w-full h-2 bg-white/5 rounded-full overflow-hidden">
+                                    <div id="confidence-bar" class="h-full bg-primary transition-all duration-1000 shadow-[0_0_8px_var(--primary)]" style="width: 0%"></div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="grid grid-cols-2 gap-4">
+                            <div class="p-3 bg-white/5 rounded-xl border border-white/5">
+                                <p class="text-[10px] font-bold text-slate-600 uppercase mb-1">Volatility</p>
+                                <p id="volatility-level" class="text-sm font-bold text-slate-300">CALCULATING...</p>
+                            </div>
+                            <div id="rsi-indicator-container" class="p-3 bg-white/5 rounded-xl border border-white/5">
+                                <p class="text-[10px] font-bold text-slate-600 uppercase mb-1">RSI Sentiment</p>
+                                <p id="rsi-sentiment" class="text-sm font-bold text-slate-300">NEUTRAL</p>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Company Intelligence Panel -->
+                <section class="glass-panel p-6 border-white/5">
+                    <h3 class="text-lg font-bold text-white mb-4">Asset Profile</h3>
+                    <div class="prose prose-invert prose-sm">
+                        <p id="company-description" class="text-slate-400 leading-relaxed text-xs max-h-40 overflow-y-auto custom-scrollbar pr-2">
+                            Enter a ticker symbol to analyze institutional profile and market summary...
+                        </p>
+                    </div>
+                </section>
+
+                <!-- Market Intel (News) -->
+                <section class="space-y-4">
+                    <div class="flex justify-between items-center px-2">
+                        <div class="flex items-center gap-3">
+                            <h3 class="text-lg font-bold text-white">Market Intel</h3>
+                            <span id="news-header-label"></span>
+                        </div>
+                        <span id="live-feed-badge" class="text-[10px] font-bold text-primary tracking-widest animate-pulse">LIVE FEED</span>
+                    </div>
+                    <div id="news-container" class="space-y-3 max-h-[480px] overflow-y-auto pr-2 custom-scrollbar">
+                        <!-- Skeleton Loaders -->
+                        <div class="flex gap-4 p-4 rounded-2xl bg-white/5 border border-white/5 animate-pulse">
+                            <div class="w-16 h-16 rounded-lg bg-white/5"></div>
+                            <div class="flex-1 space-y-2">
+                                <div class="h-3 bg-white/10 rounded w-3/4"></div>
+                                <div class="h-2 bg-white/5 rounded w-1/2"></div>
+                            </div>
+                        </div>
+                        <div class="flex gap-4 p-4 rounded-2xl bg-white/5 border border-white/5 animate-pulse opacity-60">
+                            <div class="w-16 h-16 rounded-lg bg-white/5"></div>
+                            <div class="flex-1 space-y-2">
+                                <div class="h-3 bg-white/10 rounded w-3/4"></div>
+                                <div class="h-2 bg-white/5 rounded w-1/2"></div>
+                            </div>
+                        </div>
+                        <div class="flex gap-4 p-4 rounded-2xl bg-white/5 border border-white/5 animate-pulse opacity-30">
+                            <div class="w-16 h-16 rounded-lg bg-white/5"></div>
+                            <div class="flex-1 space-y-2">
+                                <div class="h-3 bg-white/10 rounded w-3/4"></div>
+                                <div class="h-2 bg-white/5 rounded w-1/2"></div>
+                            </div>
+                        </div>
+                    </div>
+                    <button class="w-full py-4 text-[10px] font-black text-slate-500 hover:text-white uppercase tracking-[0.2em] border border-dashed border-white/10 rounded-2xl transition-all">VIEW ALL REPORTS</button>
+                </section>
+
+            </aside>
+        </div>
+    </main>
+
+    <!-- Footer Mobile Nav -->
+    <nav class="lg:hidden fixed bottom-0 left-0 right-0 h-16 bg-surface/90 backdrop-blur-2xl border-t border-white/10 z-50 flex items-center justify-around px-4">
+        <a href="{{ url_for('index') }}"><span class="material-symbols-outlined text-primary">dashboard</span></a>
+        <a href="{{ url_for('markets') }}"><span class="material-symbols-outlined text-slate-500">monitoring</span></a>
+        <a href="{{ url_for('reports') }}"><span class="material-symbols-outlined text-slate-500">description</span></a>
+        <a href="{{ url_for('portfolio') }}"><span class="material-symbols-outlined text-slate-500">account_balance_wallet</span></a>
+    </nav>
+
+    <!-- Scripts -->
+    <script src="{{ url_for('static', filename='js/index.js') }}"></script>
+</body>
+</html>
