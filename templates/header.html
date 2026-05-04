@@ -1,0 +1,221 @@
+<style>
+    .ap-header {
+        position: fixed;
+        top: 0; left: 0; right: 0;
+        height: 64px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 1rem;
+        padding: 0 1.5rem;
+        background: rgba(11, 19, 38, 0.92);
+        backdrop-filter: blur(16px);
+        -webkit-backdrop-filter: blur(16px);
+        border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+        z-index: 9999;
+        font-family: 'Inter', system-ui, sans-serif;
+        box-sizing: border-box;
+    }
+    .ap-brand {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5rem;
+        text-decoration: none;
+        color: #e2e8f0;
+        white-space: nowrap;
+        flex-shrink: 0;
+    }
+    .ap-brand-icon {
+        width: 32px; height: 32px;
+        border-radius: 8px;
+        background: #2563eb;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        flex-shrink: 0;
+        box-shadow: 0 4px 16px rgba(37,99,235,0.4);
+    }
+    .ap-brand-icon span {
+        font-size: 16px;
+        color: #fff;
+        font-family: 'Material Symbols Outlined';
+        font-weight: normal;
+        font-style: normal;
+        line-height: 1;
+        display: inline-block;
+        white-space: nowrap;
+    }
+    .ap-brand-name {
+        font-size: 1rem;
+        font-weight: 800;
+        letter-spacing: -0.02em;
+        color: #e2e8f0;
+    }
+    .ap-brand-name b { color: #60a5fa; font-weight: 900; }
+
+    /* Desktop Nav Pill */
+    .ap-nav-desktop {
+        display: inline-flex;
+        align-items: center;
+        gap: 2px;
+        background: rgba(255,255,255,0.05);
+        border: 1px solid rgba(255,255,255,0.1);
+        border-radius: 9999px;
+        padding: 3px;
+        flex-shrink: 0;
+    }
+    .ap-nav-link {
+        display: inline-flex;
+        align-items: center;
+        padding: 6px 14px;
+        border-radius: 9999px;
+        color: #94a3b8;
+        font-size: 11px;
+        font-weight: 800;
+        text-transform: uppercase;
+        letter-spacing: 0.08em;
+        text-decoration: none;
+        transition: background 0.2s, color 0.2s;
+        white-space: nowrap;
+    }
+    .ap-nav-link:hover { background: rgba(255,255,255,0.08); color: #e2e8f0; }
+    .ap-nav-link.is-active { background: #2563eb; color: #fff; box-shadow: 0 2px 8px rgba(37,99,235,0.4); }
+
+    /* Actions */
+    .ap-actions {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        flex-shrink: 0;
+    }
+    .ap-notif-btn {
+        width: 34px; height: 34px;
+        border-radius: 9999px;
+        background: transparent;
+        border: 1px solid rgba(255,255,255,0.12);
+        color: #94a3b8;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+        position: relative;
+        flex-shrink: 0;
+    }
+    .ap-notif-btn span.material-symbols-outlined {
+        font-family: 'Material Symbols Outlined';
+        font-weight: normal; font-style: normal;
+        font-size: 18px; line-height: 1;
+        display: inline-block; white-space: nowrap;
+    }
+    .ap-notif-dot {
+        position: absolute;
+        top: 4px; right: 4px;
+        width: 7px; height: 7px;
+        background: #ef4444;
+        border-radius: 50%;
+        border: 1.5px solid #0b1326;
+    }
+    .ap-trade-btn {
+        display: inline-flex;
+        align-items: center;
+        background: #2563eb;
+        color: #fff;
+        border: none;
+        border-radius: 9999px;
+        padding: 7px 16px;
+        font-size: 11px;
+        font-weight: 900;
+        text-transform: uppercase;
+        letter-spacing: 0.08em;
+        cursor: pointer;
+        white-space: nowrap;
+        flex-shrink: 0;
+        transition: background 0.2s;
+    }
+    .ap-trade-btn:hover { background: #1d4ed8; }
+
+    /* Mobile bottom nav */
+    .ap-mobile-nav {
+        display: none;
+    }
+
+    @media (max-width: 768px) {
+        .ap-nav-desktop { display: none !important; }
+        .ap-trade-btn { display: none !important; }
+        .ap-brand-name { display: none !important; }
+        .ap-mobile-nav {
+            display: flex;
+            position: fixed;
+            bottom: 0; left: 0; right: 0;
+            height: 56px;
+            background: rgba(11,19,38,0.96);
+            border-top: 1px solid rgba(255,255,255,0.08);
+            z-index: 9998;
+            align-items: center;
+            justify-content: space-around;
+        }
+        .ap-mobile-link {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 2px;
+            color: #64748b;
+            text-decoration: none;
+            font-size: 9px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            padding: 6px 12px;
+            border-radius: 8px;
+            transition: color 0.2s;
+        }
+        .ap-mobile-link span.material-symbols-outlined {
+            font-family: 'Material Symbols Outlined';
+            font-size: 22px;
+            font-weight: normal; font-style: normal; line-height: 1;
+            display: inline-block;
+        }
+        .ap-mobile-link.is-active { color: #60a5fa; }
+    }
+</style>
+
+<header class="ap-header">
+    <a href="/" class="ap-brand">
+        <span class="ap-brand-icon">
+            <span class="material-symbols-outlined">query_stats</span>
+        </span>
+        <span class="ap-brand-name">AlphaPulse <b>Terminal</b></span>
+    </a>
+
+    <nav class="ap-nav-desktop">
+        <a href="/"          class="ap-nav-link {% if active_page == 'index'     %}is-active{% endif %}">Dashboard</a>
+        <a href="/markets"   class="ap-nav-link {% if active_page == 'markets'   %}is-active{% endif %}">Markets</a>
+        <a href="/portfolio" class="ap-nav-link {% if active_page == 'portfolio' %}is-active{% endif %}">Portfolio</a>
+        <a href="/reports"   class="ap-nav-link {% if active_page == 'reports'   %}is-active{% endif %}">Reports</a>
+    </nav>
+
+    <div class="ap-actions">
+        <button class="ap-notif-btn" aria-label="Notifications">
+            <span class="material-symbols-outlined">notifications</span>
+            <span class="ap-notif-dot"></span>
+        </button>
+        <button class="ap-trade-btn">Trade</button>
+    </div>
+</header>
+
+<!-- Mobile Bottom Nav -->
+<nav class="ap-mobile-nav">
+    <a href="/"          class="ap-mobile-link {% if active_page == 'index'     %}is-active{% endif %}">
+        <span class="material-symbols-outlined">dashboard</span>Home
+    </a>
+    <a href="/markets"   class="ap-mobile-link {% if active_page == 'markets'   %}is-active{% endif %}">
+        <span class="material-symbols-outlined">monitoring</span>Markets
+    </a>
+    <a href="/portfolio" class="ap-mobile-link {% if active_page == 'portfolio' %}is-active{% endif %}">
+        <span class="material-symbols-outlined">account_balance_wallet</span>Portfolio
+    </a>
+    <a href="/reports"   class="ap-mobile-link {% if active_page == 'reports'   %}is-active{% endif %}">
+        <span class="material-symbols-outlined">description</span>Reports
+    </a>
+</nav>

@@ -314,14 +314,22 @@ async function fetchNews(ticker) {
         if (data.news && data.news.length > 0) {
             data.news.forEach(n => {
                 const date = new Date(n.providerPublishTime * 1000).toLocaleString();
+                const initials = (n.publisher || 'N').substring(0, 2).toUpperCase();
                 const card = document.createElement('a');
                 card.href = n.link;
                 card.target = '_blank';
                 card.className = 'glass news-card';
                 card.innerHTML = `
-                    <div class="news-source">${n.publisher}</div>
-                    <div class="news-title">${n.title}</div>
-                    <div class="news-time">${date}</div>
+                    <div style="display:flex; gap: 1rem; align-items: flex-start;">
+                        <div style="flex-shrink:0; width:40px; height:40px; border-radius:8px; background:rgba(59,130,246,0.12); border:1px solid rgba(59,130,246,0.2); display:flex; align-items:center; justify-content:center; font-size:12px; font-weight:900; color:#60a5fa; letter-spacing:0.05em;">
+                            ${initials}
+                        </div>
+                        <div style="flex:1;">
+                            <div class="news-source" style="margin-bottom: 4px;">${n.publisher}</div>
+                            <div class="news-title" style="font-size: 14px; margin-bottom: 4px;">${n.title}</div>
+                            <div class="news-time">${date}</div>
+                        </div>
+                    </div>
                 `;
                 container.appendChild(card);
             });

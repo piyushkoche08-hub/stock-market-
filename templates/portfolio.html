@@ -4,6 +4,7 @@
 <meta charset="utf-8"/>
 <meta content="width=device-width, initial-scale=1.0" name="viewport"/>
 <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
@@ -35,73 +36,11 @@
 <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
 </head>
 <body class="bg-background text-on-background font-body-md selection:bg-primary-container selection:text-on-primary-container">
-    <!-- Top Floating Navbar -->
-    <header class="fixed top-0 right-0 left-0 lg:left-64 z-40 h-20 px-8 flex items-center justify-between pointer-events-none">
-        <div class="glass-panel w-full h-14 flex items-center justify-between px-6 pointer-events-auto border-white/5 bg-surface/40">
-            <div class="flex items-center flex-1 max-w-xl">
-                <span class="material-symbols-outlined text-slate-500 mr-3">search</span>
-                <input id="ticker-input" type="text" placeholder="Search portfolio assets..." 
-                    class="bg-transparent border-none focus:ring-0 text-sm w-full font-medium placeholder:text-slate-600">
-            </div>
-            
-            <div class="flex items-center gap-4">
-                <button class="p-2 text-slate-400 hover:text-white transition-colors relative">
-                    <span class="material-symbols-outlined text-xl">notifications</span>
-                    <span class="absolute top-2 right-2 w-2 h-2 bg-primary rounded-full border-2 border-surface"></span>
-                </button>
-                <div class="w-8 h-8 rounded-full bg-primary/20 border border-primary/40 flex items-center justify-center">
-                    <span class="material-symbols-outlined text-primary text-lg">person</span>
-                </div>
-                <button class="bg-primary hover:bg-primary/80 px-4 py-1.5 rounded-lg text-[10px] font-black tracking-widest text-white transition-all pointer-events-auto">TRADE NOW</button>
-            </div>
-        </div>
-    </header>
-    <aside id="sidebar" class="fixed left-0 top-0 h-full w-64 bg-surface border-r border-white/10 z-40 lg:flex flex-col hidden transition-all duration-300">
-        <div class="p-6 flex items-center justify-between">
-            <h1 class="text-xl font-black text-white tracking-tighter flex items-center gap-2">
-                <span class="w-8 h-8 bg-primary rounded-lg flex items-center justify-center">
-                    <span class="material-symbols-outlined text-white text-sm" style="font-variation-settings: 'FILL' 1;">vital_signs</span>
-                </span>
-                <span>AlphaPulse <span class="text-primary">X</span></span>
-            </h1>
-        </div>
-
-        <nav class="flex-1 px-4 space-y-1">
-            <a href="{{ url_for('index') }}" class="sidebar-item">
-                <span class="material-symbols-outlined">dashboard</span>
-                <span class="font-semibold text-sm">Dashboard</span>
-            </a>
-            <a href="{{ url_for('markets') }}" class="sidebar-item">
-                <span class="material-symbols-outlined">monitoring</span>
-                <span class="font-semibold text-sm">Markets</span>
-            </a>
-            <a href="{{ url_for('reports') }}" class="sidebar-item">
-                <span class="material-symbols-outlined">description</span>
-                <span class="font-semibold text-sm">Reports</span>
-            </a>
-            <a href="{{ url_for('portfolio') }}" class="sidebar-item active">
-                <span class="material-symbols-outlined">account_balance_wallet</span>
-                <span class="font-semibold text-sm">Portfolio</span>
-            </a>
-
-            <div class="pt-8 pb-2 px-4">
-                <span class="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Market Watch</span>
-            </div>
-            <div id="popular-stocks-list" class="space-y-1 overflow-y-auto max-h-[300px] custom-scrollbar px-2">
-                <!-- Populated by JS if needed -->
-            </div>
-        </nav>
-
-        <div class="px-4 mt-auto">
-            <div class="glass-panel p-4 bg-primary/5 border-primary/20 mb-4">
-                <p class="text-[10px] font-bold text-primary uppercase tracking-widest mb-1">Elite Tier</p>
-                <p class="text-[10px] text-slate-400 mb-3">Unlock institutional-grade predictive analytics.</p>
-                <button class="w-full py-2 bg-primary text-white text-[10px] font-black uppercase tracking-widest rounded-lg hover:brightness-110 transition-all">Upgrade</button>
-            </div>
-        </div>
-    </aside>
-<!-- Main Content Canvas -->
-<main class="lg:ml-64 pt-24 px-6 pb-12 min-h-screen">
+    {% set active_page = 'portfolio' %}
+    {% include 'header.html' %}
+    
+    <!-- Main Content Canvas -->
+    <main class="pt-24 px-6 pb-12 min-h-screen">
 <div class="max-w-7xl mx-auto space-y-8">
 <!-- Header & AI CTA Section -->
 <div class="flex flex-col md:flex-row md:items-end justify-between gap-6">
@@ -109,11 +48,29 @@
 <h1 class="font-display-xl text-display-xl text-on-surface mb-2">Portfolio Management</h1>
 <p class="text-on-surface-variant max-w-lg">Track your multi-asset holdings, performance metrics, and receive real-time AI-powered structural analysis.</p>
 </div>
-<button class="flex items-center gap-2 bg-secondary text-on-secondary px-6 py-3 rounded-full font-label-caps text-label-caps hover:shadow-[0_0_15px_rgba(78,222,163,0.3)] transition-all active:scale-95 group">
+<button id="analyze-portfolio-btn" class="flex items-center gap-2 bg-secondary text-on-secondary px-6 py-3 rounded-full font-label-caps text-label-caps hover:shadow-[0_0_15px_rgba(78,222,163,0.3)] transition-all active:scale-95 group">
 <span class="material-symbols-outlined text-lg">psychology</span>
                     Analyze Portfolio
                     <span class="material-symbols-outlined text-sm group-hover:translate-x-1 transition-transform">arrow_forward</span>
 </button>
+</div>
+<div class="glass-panel rounded-2xl p-5 border border-white/10">
+<div class="flex flex-col md:flex-row md:items-center gap-4 justify-between">
+<div>
+<h3 class="font-bold text-on-surface text-base mb-1">Upload Portfolio Screenshot</h3>
+<p class="text-xs text-on-surface-variant">Optional: upload a screenshot and then click Analyze Portfolio.</p>
+</div>
+<div class="flex items-center gap-3">
+<label for="portfolio-screenshot-input" class="cursor-pointer bg-surface-container-highest px-4 py-2 rounded-lg text-xs font-bold border border-white/10 hover:border-white/30 transition-all">
+<span class="material-symbols-outlined text-sm align-middle mr-1">upload</span>
+Choose Screenshot
+</label>
+<input id="portfolio-screenshot-input" type="file" accept="image/png,image/jpeg,image/webp" class="hidden" />
+<span id="portfolio-screenshot-name" class="text-xs text-outline">No file selected</span>
+</div>
+</div>
+<div id="portfolio-analysis-result" class="hidden mt-4 rounded-xl border border-secondary/25 bg-secondary/10 p-4"></div>
+<p id="portfolio-analysis-status" class="hidden mt-2 text-xs text-outline"></p>
 </div>
 <!-- Bento Grid Summary -->
 <div class="grid grid-cols-1 md:grid-cols-12 gap-6">
@@ -348,11 +305,4 @@
 </button>
 
 <script src="{{ url_for('static', filename='js/portfolio.js') }}"></script>
-    <!-- Footer Mobile Nav -->
-    <nav class="lg:hidden fixed bottom-0 left-0 right-0 h-16 bg-surface/90 backdrop-blur-2xl border-t border-white/10 z-50 flex items-center justify-around px-4">
-        <a href="{{ url_for('index') }}"><span class="material-symbols-outlined text-slate-500">dashboard</span></a>
-        <a href="{{ url_for('markets') }}"><span class="material-symbols-outlined text-slate-500">monitoring</span></a>
-        <a href="{{ url_for('reports') }}"><span class="material-symbols-outlined text-slate-500">description</span></a>
-        <a href="{{ url_for('portfolio') }}"><span class="material-symbols-outlined text-primary">account_balance_wallet</span></a>
-    </nav>
 </body></html>

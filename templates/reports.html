@@ -41,74 +41,10 @@
     <p>Analyzing market reports...</p>
 </div>
 
-    <!-- Top Floating Navbar -->
-    <header class="fixed top-0 right-0 left-0 lg:left-64 z-40 h-20 px-8 flex items-center justify-between pointer-events-none">
-        <div class="glass-panel w-full h-14 flex items-center justify-between px-6 pointer-events-auto border-white/5 bg-surface/40">
-            <div class="flex items-center flex-1 max-w-xl">
-                <span class="material-symbols-outlined text-slate-500 mr-3">search</span>
-                <input id="ticker-input" type="text" placeholder="Search reports & news..." 
-                    class="bg-transparent border-none focus:ring-0 text-sm w-full font-medium placeholder:text-slate-600">
-            </div>
-            
-            <div class="flex items-center gap-4">
-                <button class="p-2 text-slate-400 hover:text-white transition-colors relative">
-                    <span class="material-symbols-outlined text-xl">notifications</span>
-                    <span class="absolute top-2 right-2 w-2 h-2 bg-primary rounded-full border-2 border-surface"></span>
-                </button>
-                <div class="w-8 h-8 rounded-full bg-primary/20 border border-primary/40 flex items-center justify-center">
-                    <span class="material-symbols-outlined text-primary text-lg">person</span>
-                </div>
-                <button class="bg-primary hover:bg-primary/80 px-4 py-1.5 rounded-lg text-[10px] font-black tracking-widest text-white transition-all pointer-events-auto">READ MORE</button>
-            </div>
-        </div>
-    </header>
+    {% set active_page = 'reports' %}
+    {% include 'header.html' %}
 
-    <aside id="sidebar" class="fixed left-0 top-0 h-full w-64 bg-surface border-r border-white/10 z-40 lg:flex flex-col hidden transition-all duration-300">
-        <div class="p-6 flex items-center justify-between">
-            <h1 class="text-xl font-black text-white tracking-tighter flex items-center gap-2">
-                <span class="w-8 h-8 bg-primary rounded-lg flex items-center justify-center">
-                    <span class="material-symbols-outlined text-white text-sm" style="font-variation-settings: 'FILL' 1;">vital_signs</span>
-                </span>
-                <span>AlphaPulse <span class="text-primary">X</span></span>
-            </h1>
-        </div>
-
-        <nav class="flex-1 px-4 space-y-1">
-            <a href="{{ url_for('index') }}" class="sidebar-item">
-                <span class="material-symbols-outlined">dashboard</span>
-                <span class="font-semibold text-sm">Dashboard</span>
-            </a>
-            <a href="{{ url_for('markets') }}" class="sidebar-item">
-                <span class="material-symbols-outlined">monitoring</span>
-                <span class="font-semibold text-sm">Markets</span>
-            </a>
-            <a href="{{ url_for('reports') }}" class="sidebar-item active">
-                <span class="material-symbols-outlined">description</span>
-                <span class="font-semibold text-sm">Reports</span>
-            </a>
-            <a href="{{ url_for('portfolio') }}" class="sidebar-item">
-                <span class="material-symbols-outlined">account_balance_wallet</span>
-                <span class="font-semibold text-sm">Portfolio</span>
-            </a>
-
-            <div class="pt-8 pb-2 px-4">
-                <span class="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Market Watch</span>
-            </div>
-            <div id="popular-stocks-list" class="space-y-1 overflow-y-auto max-h-[300px] custom-scrollbar px-2">
-                <!-- Populated by JS if needed -->
-            </div>
-        </nav>
-
-        <div class="px-4 mt-auto">
-            <div class="glass-panel p-4 bg-primary/5 border-primary/20 mb-4">
-                <p class="text-[10px] font-bold text-primary uppercase tracking-widest mb-1">Elite Tier</p>
-                <p class="text-[10px] text-slate-400 mb-3">Unlock institutional-grade predictive analytics.</p>
-                <button class="w-full py-2 bg-primary text-white text-[10px] font-black uppercase tracking-widest rounded-lg hover:brightness-110 transition-all">Upgrade</button>
-            </div>
-        </div>
-    </aside>
-
-<main class="lg:ml-64 pt-24 pb-12 px-6 max-w-[1400px] mx-auto dashboard-animate">
+<main class="pt-24 pb-12 px-6 max-w-[1400px] mx-auto dashboard-animate">
     <!-- Featured Hero Section -->
     <section class="mb-12">
     <div class="glass-card relative rounded-xl overflow-hidden min-h-[400px] flex items-center">
@@ -179,11 +115,4 @@
 </main>
 
 <script src="{{ url_for('static', filename='js/reports.js') }}"></script>
-    <!-- Footer Mobile Nav -->
-    <nav class="lg:hidden fixed bottom-0 left-0 right-0 h-16 bg-surface/90 backdrop-blur-2xl border-t border-white/10 z-50 flex items-center justify-around px-4">
-        <a href="{{ url_for('index') }}"><span class="material-symbols-outlined text-slate-500">dashboard</span></a>
-        <a href="{{ url_for('markets') }}"><span class="material-symbols-outlined text-slate-500">monitoring</span></a>
-        <a href="{{ url_for('reports') }}"><span class="material-symbols-outlined text-primary">description</span></a>
-        <a href="{{ url_for('portfolio') }}"><span class="material-symbols-outlined text-slate-500">account_balance_wallet</span></a>
-    </nav>
 </body></html>

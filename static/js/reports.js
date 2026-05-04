@@ -110,12 +110,7 @@ function renderNews(news, container) {
         a.target = '_blank';
         a.rel = 'noopener noreferrer';
         
-        const hue = Math.floor(Math.random() * 360);
-        
-        const imgHtml = article.thumbnail 
-            ? `<img src="${article.thumbnail}" alt="news" class="news-thumbnail object-cover" onerror="this.style.display='none'">` 
-            : `<div class="news-thumbnail" style="background: linear-gradient(135deg, hsl(${hue}, 70%, 20%), hsl(${hue + 40}, 80%, 10%));"></div>`;
-
+        const initials = (article.publisher || 'N').substring(0, 2).toUpperCase();
         const summaryHtml = article.summary ? `<p class="text-xs text-slate-400 line-clamp-3 mb-4 flex-1">${article.summary}</p>` : '<div class="flex-1"></div>';
         
         a.innerHTML = `
@@ -123,10 +118,12 @@ function renderNews(news, container) {
                 <span class="text-[10px] uppercase font-bold tracking-widest text-blue-400 line-clamp-1">${article.publisher}</span>
                 <span class="text-[10px] text-slate-500 whitespace-nowrap ml-2">${formatDate(article.providerPublishTime)}</span>
             </div>
-            <div class="thumbnail-wrapper w-full h-32 mb-4 rounded overflow-hidden flex-shrink-0">
-                ${imgHtml}
+            <div class="mb-4 flex items-center gap-4">
+                <div class="w-12 h-12 rounded-xl bg-blue-500/10 border border-blue-500/20 flex items-center justify-center text-xs font-black text-blue-500 group-hover:bg-blue-500 group-hover:text-white transition-all shadow-lg">
+                    ${initials}
+                </div>
+                <h4 class="font-bold text-[16px] group-hover:text-blue-400 transition-colors line-clamp-2">${article.title}</h4>
             </div>
-            <h4 class="font-bold text-[16px] mb-2 group-hover:text-blue-400 transition-colors line-clamp-2">${article.title}</h4>
             ${summaryHtml}
             <div class="flex items-center justify-between border-t border-white/5 pt-4 mt-auto">
                 <span class="text-[10px] font-semibold text-slate-300">Read Report</span>

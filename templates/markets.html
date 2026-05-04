@@ -27,68 +27,284 @@
     <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" />
     <script src="https://cdn.jsdelivr.net/npm/chart.js@3.9.1/dist/chart.min.js" crossorigin="anonymous"></script>
     <style>
-        body { font-family: 'Inter', sans-serif; background-color: #0b1326; color: #dae2fd; scrollbar-width: thin; scrollbar-color: #2d3449 transparent; }
-        .glass-panel { background: rgba(23, 31, 51, 0.7); backdrop-filter: blur(12px); border: 1px solid rgba(255,255,255,0.08); border-radius: 16px; }
+        :root {
+            --primary: #3b82f6;
+            --primary-hover: #2563eb;
+            --secondary: #00D09C;
+            --error: #ef4444;
+            --bg-color: #0b1326;
+            --surface: #171f33;
+            --surface-variant: #2d3449;
+            --text-main: #dae2fd;
+            --text-muted: #64748b;
+            --border: rgba(255, 255, 255, 0.08);
+        }
+
+        body { 
+            font-family: 'Inter', sans-serif; 
+            background-color: var(--bg-color); 
+            color: var(--text-main); 
+            margin: 0;
+            overflow-x: hidden;
+        }
+
+        .markets-page-main {
+            padding: 88px 2rem 3rem;
+        }
+
+        /* Layout Fallbacks for when Tailwind fails */
+        .flex { display: flex; }
+        .flex-col { flex-direction: column; }
+        .items-center { align-items: center; }
+        .justify-between { justify-content: space-between; }
+        .gap-2 { gap: 0.5rem; }
+        .gap-4 { gap: 1rem; }
+        .gap-6 { gap: 1.5rem; }
+        .gap-8 { gap: 2rem; }
+        .px-8 { padding-left: 2rem; padding-right: 2rem; }
+        .py-4 { padding-top: 1rem; padding-bottom: 1rem; }
+
+
+        .glass-panel { 
+            background: rgba(23, 31, 51, 0.7); 
+            backdrop-filter: blur(12px); 
+            border: 1px solid var(--border); 
+            border-radius: 16px; 
+        }
+
         .no-scrollbar::-webkit-scrollbar { display: none; }
+        
         .asset-row:hover { background: rgba(59, 130, 246, 0.05); }
-        .tab-active { background: #3b82f6; color: white; box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3); }
+        
+        .grid { display: grid !important; }
+        .grid-cols-12 { grid-template-columns: repeat(12, minmax(0, 1fr)) !important; }
+        .col-span-12 { grid-column: span 12 / span 12 !important; }
+        .lg\:col-span-8 { grid-column: span 8 / span 8 !important; }
+        .lg\:col-span-4 { grid-column: span 4 / span 4 !important; }
+        .gap-10 { gap: 2.5rem !important; }
+
+        .tab-btn {
+            padding: 0.7rem 1.55rem;
+            border-radius: 9999px;
+            font-size: 0.84rem;
+            font-weight: 800;
+            transition: all 0.3s;
+            white-space: nowrap;
+            cursor: pointer;
+            border: 1px solid rgba(96, 165, 250, 0.28);
+            background: rgba(30, 41, 59, 0.8);
+            color: #dbeafe;
+            letter-spacing: 0.01em;
+        }
+        
+        .tab-btn:hover {
+            background: rgba(59, 130, 246, 0.26);
+            border-color: rgba(147, 197, 253, 0.75);
+            color: #ffffff;
+        }
+
+        .tab-active { 
+            background: var(--primary) !important; 
+            color: white !important; 
+            border-color: rgba(191, 219, 254, 0.95) !important;
+            box-shadow: 0 6px 18px rgba(59, 130, 246, 0.4); 
+        }
+
         @keyframes pulse-soft { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }
-        .live-indicator { width: 6px; height: 6px; background: #00D09C; border-radius: 50%; animation: pulse-soft 2s infinite; }
+        .live-indicator { width: 6px; height: 6px; background: var(--secondary); border-radius: 50%; animation: pulse-soft 2s infinite; }
+
+        .btn-trade:hover {
+            transform: translateY(-1px);
+        }
+
+        .search-box {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .assets-search {
+            display: flex;
+            align-items: center;
+            gap: 0.45rem;
+            padding: 0.4rem 0.7rem;
+            border-radius: 9999px;
+            border: 1px solid rgba(96, 165, 250, 0.35);
+            background: rgba(15, 23, 42, 0.65);
+            min-width: 220px;
+        }
+
+        .assets-search .material-symbols-outlined {
+            font-size: 16px;
+            color: #93c5fd;
+        }
+
+        .assets-search input {
+            width: 100%;
+            border: none;
+            outline: none;
+            background: transparent;
+            color: #e2e8f0;
+            font-size: 0.78rem;
+            font-weight: 600;
+        }
+
+        .assets-search input::placeholder {
+            color: #64748b;
+            font-weight: 600;
+        }
+
+        .market-table th {
+            padding: 1rem 2rem;
+            font-size: 10px;
+            font-weight: 900;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .market-table td {
+            padding: 1.25rem 2rem;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .card-title {
+            font-size: 0.875rem;
+            font-weight: 900;
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        /* Utilities */
+        .text-secondary { color: var(--secondary) !important; }
+        .text-error { color: var(--error) !important; }
+        .text-blue-500 { color: var(--primary) !important; }
+        .text-white { color: white !important; }
+        .text-slate-400 { color: #94a3b8 !important; }
+        .text-slate-500 { color: #64748b !important; }
+        .text-slate-600 { color: #475569 !important; }
+        
+        .bg-slate-800 { background-color: #1e293b !important; }
+        .bg-slate-900\/20 { background-color: rgba(15, 23, 42, 0.2) !important; }
+        .bg-blue-600 { background-color: var(--primary) !important; }
+        .bg-blue-600\/10 { background-color: rgba(59, 130, 246, 0.1) !important; }
+        
+        .font-black { font-weight: 900 !important; }
+        .font-bold { font-weight: 700 !important; }
+        .font-mono { font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace !important; }
+        
+        .text-xs { font-size: 0.75rem !important; }
+        .text-\[10px\] { font-size: 10px !important; }
+        .text-\[9px\] { font-size: 9px !important; }
+        
+        .rounded-lg { border-radius: 0.5rem !important; }
+        .rounded-xl { border-radius: 0.75rem !important; }
+        .rounded-full { border-radius: 9999px !important; }
+        
+        .w-8 { width: 2rem !important; }
+        .h-8 { height: 2rem !important; }
+        .transition-all { transition: all 0.3s ease !important; }
+        
+        .absolute { position: absolute !important; }
+        .relative { position: relative !important; }
+        
+        .relative { position: relative !important; }
+        
+        .border { border: 1px solid var(--border) !important; }
+        .border-b { border-bottom: 1px solid var(--border) !important; }
+        .last\:border-0:last-child { border: 0 !important; }
+
+        .px-6 { padding-left: 1.5rem !important; padding-right: 1.5rem !important; }
+        .py-4 { padding-top: 1rem !important; padding-bottom: 1rem !important; }
+        .p-12 { padding: 3rem !important; }
+        .mb-1 { margin-bottom: 0.25rem !important; }
+        .mt-1 { margin-top: 0.25rem !important; }
+        .text-right { text-align: right !important; }
+        .text-center { text-align: center !important; }
+        .shrink-0 { flex-shrink: 0 !important; }
+        .min-w-0 { min-width: 0 !important; }
+        .flex-1 { flex: 1 1 0% !important; }
+
+        /* News specific */
+        .news-item {
+            padding: 1.5rem !important;
+            display: flex !important;
+            gap: 1rem !important;
+            border-bottom: 1px solid var(--border) !important;
+            transition: all 0.3s ease !important;
+            text-decoration: none !important;
+            color: inherit !important;
+        }
+        .news-item:hover {
+            background: rgba(255, 255, 255, 0.05) !important;
+        }
+        .news-thumb {
+            width: 4rem !important;
+            height: 4rem !important;
+            border-radius: 0.5rem !important;
+            object-fit: cover !important;
+            background: #1e293b !important;
+            flex-shrink: 0 !important;
+            border: 1px solid var(--border) !important;
+        }
+        .line-clamp-2 {
+            display: -webkit-box !important;
+            -webkit-line-clamp: 2 !important;
+            line-clamp: 2 !important;
+            -webkit-box-orient: vertical !important;
+            overflow: hidden !important;
+        }
+
+        .markets-page-main {
+            padding-top: 6.5rem;
+            padding-right: 2.5rem;
+            padding-bottom: 3rem;
+            padding-left: 2.5rem;
+        }
+
+        @media (max-width: 768px) {
+            .markets-page-main {
+                padding-top: 5.75rem;
+                padding-right: 1rem;
+                padding-left: 1rem;
+            }
+        }
     </style>
 </head>
 <body class="antialiased">
     <!-- Institutional Top Navbar -->
-    <header class="fixed top-0 left-0 right-0 h-16 bg-background/80 backdrop-blur-xl border-b border-white/5 z-50 px-8 flex items-center justify-between">
-        <div class="flex items-center gap-8">
-            <h1 class="text-xl font-black tracking-tighter flex items-center gap-2">
-                <span class="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center shadow-lg shadow-blue-500/20">
-                    <span class="material-symbols-outlined text-white text-sm" style="font-variation-settings: 'FILL' 1;">query_stats</span>
-                </span>
-                <span>AlphaPulse <span class="text-blue-500">Terminal</span></span>
-            </h1>
-            <div class="hidden lg:flex items-center bg-white/5 rounded-full px-4 py-1.5 border border-white/10 group focus-within:border-blue-500/50 transition-all">
-                <span class="material-symbols-outlined text-slate-500 text-sm group-focus-within:text-blue-400">search</span>
-                <input type="text" placeholder="Search markets (e.g. NIFTY, NASDAQ)..." class="bg-transparent border-none focus:ring-0 text-xs w-64 placeholder:text-slate-600 font-medium">
-            </div>
-        </div>
-        
-        <div class="flex items-center gap-6">
-            <button class="relative text-slate-400 hover:text-white transition-colors">
-                <span class="material-symbols-outlined text-xl">notifications</span>
-                <span class="absolute -top-1 -right-1 w-2 h-2 bg-red-500 rounded-full border-2 border-background"></span>
-            </button>
-            <div class="w-8 h-8 rounded-full bg-slate-800 border border-white/10 flex items-center justify-center cursor-pointer hover:border-blue-500 transition-all">
-                <span class="material-symbols-outlined text-slate-300 text-lg">person</span>
-            </div>
-            <button class="bg-blue-600 hover:bg-blue-500 text-white px-5 py-1.5 rounded-full text-[11px] font-black tracking-widest transition-all shadow-lg shadow-blue-600/20">TRADE</button>
-        </div>
-    </header>
+    {% set active_page = 'markets' %}
+    {% include 'header.html' %}
 
-    <main class="pt-24 px-8 pb-12 max-w-[1600px] mx-auto">
+    <main class="markets-page-main max-w-[1600px] mx-auto">
         <!-- Sub Header -->
         <div class="mb-8">
-            <p class="text-slate-400 text-sm font-medium">Professional real-time asset tracking across all sectors.</p>
+            <p style="color: var(--text-muted); font-size: 0.875rem; font-weight: 500; margin: 0;">Professional real-time asset tracking across all sectors.</p>
         </div>
 
         <!-- Market Quick Tabs -->
         <div class="flex gap-2 mb-10 overflow-x-auto no-scrollbar pb-2">
-            <button onclick="switchCategory('Indian Market')" id="cat-Indian Market" class="px-6 py-2.5 rounded-full text-xs font-bold transition-all whitespace-nowrap tab-active">Indian Market</button>
-            <button onclick="switchCategory('US Market')" id="cat-US Market" class="px-6 py-2.5 rounded-full text-xs font-bold text-slate-500 hover:bg-white/5 whitespace-nowrap">US Market</button>
-            <button onclick="switchCategory('Forex')" id="cat-Forex" class="px-6 py-2.5 rounded-full text-xs font-bold text-slate-500 hover:bg-white/5 whitespace-nowrap">Forex</button>
-            <button onclick="switchCategory('Crypto')" id="cat-Crypto" class="px-6 py-2.5 rounded-full text-xs font-bold text-slate-500 hover:bg-white/5 whitespace-nowrap">Crypto</button>
-            <button onclick="switchCategory('Meme Coins')" id="cat-Meme Coins" class="px-6 py-2.5 rounded-full text-xs font-bold text-slate-500 hover:bg-white/5 whitespace-nowrap">Meme Coins</button>
+            <button onclick="switchCategory('Indian Market')" id="cat-Indian Market" class="tab-btn tab-active">Indian Market</button>
+            <button onclick="switchCategory('US Market')" id="cat-US Market" class="tab-btn">US Market</button>
+            <button onclick="switchCategory('Forex')" id="cat-Forex" class="tab-btn">Forex</button>
+            <button onclick="switchCategory('Crypto')" id="cat-Crypto" class="tab-btn">Crypto</button>
+            <button onclick="switchCategory('Meme Coins')" id="cat-Meme Coins" class="tab-btn">Meme Coins</button>
         </div>
 
         <!-- Professional Global Indices Table Section -->
-        <div class="glass-panel overflow-hidden mb-12 border border-blue-500/10">
-            <div class="p-6 border-b border-white/5 bg-slate-900/20 flex justify-between items-center">
-                <h3 class="text-sm font-black text-white uppercase tracking-widest flex items-center gap-2">
+        <div class="glass-panel overflow-hidden mb-12" style="border: 1px solid rgba(59, 130, 246, 0.1);">
+            <div class="p-6 border-b border-white/5 bg-slate-900/20 flex justify-between items-center" style="padding: 1.5rem; border-bottom: 1px solid var(--border);">
+                <h3 class="card-title">
                     <span class="material-symbols-outlined text-blue-500 text-lg">monitoring</span>
                     Global Markets Overview
                 </h3>
                 <div class="flex items-center gap-2">
-                    <span class="w-2 h-2 rounded-full bg-secondary animate-pulse"></span>
-                    <span class="text-[10px] font-black text-secondary uppercase tracking-widest">Live Updates</span>
+                    <span class="live-indicator"></span>
+                    <span style="font-size: 10px; font-weight: 900; color: var(--secondary); text-transform: uppercase; letter-spacing: 0.1em;">Live Updates</span>
                 </div>
             </div>
             <div class="overflow-x-auto no-scrollbar">
@@ -119,9 +335,15 @@
                             <h3 id="explorer-title" class="text-xl font-black text-white">Indian Market Assets</h3>
                             <p id="explorer-desc" class="text-xs text-slate-500 mt-1">Live tracking for Indian Market across major exchanges</p>
                         </div>
-                        <div class="flex items-center gap-2 bg-secondary/10 px-3 py-1 rounded-full">
-                            <span class="live-indicator"></span>
-                            <span class="text-[10px] font-black text-secondary uppercase tracking-widest">LIVE</span>
+                        <div class="flex items-center gap-3">
+                            <label for="assets-search-input" class="assets-search">
+                                <span class="material-symbols-outlined">search</span>
+                                <input id="assets-search-input" type="text" placeholder="Search ticker or company" />
+                            </label>
+                            <div class="flex items-center gap-2 bg-secondary/10 px-3 py-1 rounded-full">
+                                <span class="live-indicator"></span>
+                                <span class="text-[10px] font-black text-secondary uppercase tracking-widest">LIVE</span>
+                            </div>
                         </div>
                     </div>
                     <div class="overflow-x-auto">

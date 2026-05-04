@@ -682,9 +682,11 @@ document.addEventListener('DOMContentLoaded', () => {
                 else dateStr = date.toLocaleDateString();
             }
 
+            const initials = (item.publisher || 'N').substring(0, 2).toUpperCase();
+
             div.innerHTML = `
-                <div class="w-16 h-16 rounded-lg overflow-hidden flex-shrink-0 bg-slate-800">
-                    <img src="${item.thumbnail || ''}" class="w-full h-full object-cover opacity-60 group-hover:opacity-100 transition-opacity" onerror="this.src='https://images.unsplash.com/photo-1611974715853-2b8ef9d1d202?auto=format&fit=crop&q=80&w=100&h=100'">
+                <div class="flex-shrink-0 w-12 h-12 rounded-xl bg-primary/10 border border-primary/20 flex items-center justify-center text-[10px] font-black text-primary group-hover:bg-primary group-hover:text-white transition-all shadow-lg">
+                    ${initials}
                 </div>
                 <div class="flex-1">
                     <h4 class="text-xs font-bold text-slate-300 line-clamp-2 group-hover:text-primary transition-colors">${item.title}</h4>

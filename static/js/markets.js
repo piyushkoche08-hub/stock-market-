@@ -25,6 +25,67 @@ const formatNumber = (val) => {
 };
 
 let currentCategory = 'Indian Market';
+let currentCategoryAssets = [];
+
+function renderCategoryAssets(assets, cat) {
+    const body = document.getElementById('category-assets-body');
+    if (!body) return;
+    body.innerHTML = '';
+
+    if (!assets || assets.length === 0) {
+        body.innerHTML = '<tr><td colspan="5" class="p-12 text-center text-slate-500">No assets found for this search.</td></tr>';
+        return;
+    }
+
+    assets.forEach(asset => {
+        const isPositive = asset.change >= 0;
+        const colorClass = isPositive ? 'text-secondary' : 'text-error';
+        const tr = document.createElement('tr');
+        tr.className = 'asset-row transition-all cursor-pointer group';
+        tr.onclick = () => window.location.href = `index.html?ticker=${asset.ticker}`;
+        
+        let currency = 'USD';
+        if (cat === 'Indian Market' || asset.ticker.endsWith('.NS') || asset.ticker.endsWith('.BO')) {
+            currency = 'INR';
+        } else if (cat === 'Forex' && asset.ticker.startsWith('USDINR')) {
+            currency = 'INR';
+        } else if (cat === 'Crypto' || cat === 'Meme Coins') {
+            currency = 'USD';
+        }
+        
+        tr.innerHTML = `
+            <td class="px-6 py-4">
+                <div class="flex flex-col">
+                    <span class="font-bold text-white group-hover:text-blue-400 transition-colors">${asset.ticker.replace('.NS', '').replace('=X', '')}</span>
+                    <span class="text-[10px] text-slate-500 uppercase font-medium line-clamp-1">${asset.name}</span>
+                </div>
+            </td>
+            <td class="px-6 py-4 font-bold text-slate-300">${formatCurrency(asset.price, currency)}</td>
+            <td class="px-6 py-4 text-right ${colorClass} font-black">${isPositive ? '+' : ''}${asset.change.toFixed(2)}%</td>
+            <td class="px-6 py-4 text-right text-slate-500 text-xs">${formatNumber(asset.volume)}</td>
+            <td class="px-6 py-4 text-right">
+                <button class="text-blue-500 hover:text-blue-400 transition-all active:scale-90"><span class="material-symbols-outlined">add_circle</span></button>
+            </td>
+        `;
+        body.appendChild(tr);
+    });
+}
+
+function applyAssetsSearch() {
+    const searchInput = document.getElementById('assets-search-input');
+    const query = (searchInput?.value || '').trim().toLowerCase();
+
+    if (!query) {
+        renderCategoryAssets(currentCategoryAssets, currentCategory);
+        return;
+    }
+
+    const filteredAssets = currentCategoryAssets.filter(asset =>
+        asset.ticker.toLowerCase().includes(query) ||
+        (asset.name || '').toLowerCase().includes(query)
+    );
+    renderCategoryAssets(filteredAssets, currentCategory);
+}
 
     async function renderSparkline(canvasId, ticker, colorHex) {
         try {
@@ -148,9 +209,9 @@ async function switchCategory(cat) {
     ['Indian Market', 'US Market', 'Forex', 'Crypto', 'Meme Coins'].forEach(c => {
         const btn = document.getElementById(`cat-${c}`);
         if(c === cat) {
-            btn.className = 'px-4 py-2 text-xs font-bold bg-blue-500 text-white rounded-lg transition-all whitespace-nowrap';
+            btn.className = 'tab-btn tab-active';
         } else {
-            btn.className = 'px-4 py-2 text-xs font-bold text-slate-400 hover:text-slate-200 rounded-lg transition-all whitespace-nowrap';
+            btn.className = 'tab-btn';
         }
     });
 
@@ -158,6 +219,8 @@ async function switchCategory(cat) {
     document.getElementById('explorer-title').textContent = `${cat} Market Assets`;
     document.getElementById('explorer-desc').textContent = `Live tracking for ${cat} across major exchanges`;
     document.getElementById('news-title').textContent = `${cat} Updates`;
+    const searchInput = document.getElementById('assets-search-input');
+    if (searchInput) searchInput.value = '';
 
     loadCategoryAssets(cat);
     loadGeneralNews(cat);
@@ -171,46 +234,14 @@ async function loadCategoryAssets(cat) {
         const res = await fetch(`${API_BASE}/market-category/${encodeURIComponent(cat)}`);
         const data = await res.json();
         if (!body) return;
-        body.innerHTML = '';
 
         if (!data.assets || data.assets.length === 0) {
             body.innerHTML = '<tr><td colspan="5" class="p-12 text-center text-slate-500">No assets found for this category.</td></tr>';
+            currentCategoryAssets = [];
             return;
         }
-
-        data.assets.forEach(asset => {
-            const isPositive = asset.change >= 0;
-            const colorClass = isPositive ? 'text-secondary' : 'text-error';
-            const tr = document.createElement('tr');
-            tr.className = 'hover:bg-white/5 transition-colors cursor-pointer group';
-            tr.onclick = () => window.location.href = `index.html?ticker=${asset.ticker}`;
-            
-            // Smarter currency detection
-            let currency = 'USD';
-            if (cat === 'Indian Market' || asset.ticker.endsWith('.NS') || asset.ticker.endsWith('.BO')) {
-                currency = 'INR';
-            } else if (cat === 'Forex' && asset.ticker.startsWith('USDINR')) {
-                currency = 'INR';
-            } else if (cat === 'Crypto' || cat === 'Meme Coins') {
-                currency = 'USD';
-            }
-            
-            tr.innerHTML = `
-                <td class="px-6 py-4">
-                    <div class="flex flex-col">
-                        <span class="font-bold text-white group-hover:text-blue-400 transition-colors">${asset.ticker.replace('.NS', '').replace('=X', '')}</span>
-                        <span class="text-[10px] text-slate-500 uppercase font-medium line-clamp-1">${asset.name}</span>
-                    </div>
-                </td>
-                <td class="px-6 py-4 font-bold text-slate-300">${formatCurrency(asset.price, currency)}</td>
-                <td class="px-6 py-4 text-right ${colorClass} font-black">${isPositive ? '+' : ''}${asset.change.toFixed(2)}%</td>
-                <td class="px-6 py-4 text-right text-slate-500 text-xs">${formatNumber(asset.volume)}</td>
-                <td class="px-6 py-4 text-right">
-                    <button class="text-blue-500 hover:text-blue-400 transition-all active:scale-90"><span class="material-symbols-outlined">add_circle</span></button>
-                </td>
-            `;
-            body.appendChild(tr);
-        });
+        currentCategoryAssets = data.assets;
+        applyAssetsSearch();
     } catch (e) { console.error("Category error:", e); }
 }
 
@@ -231,20 +262,24 @@ async function loadGeneralNews(cat = null) {
                     timeStr = date.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
                 }
             }
+            const initials = (article.publisher || 'N').substring(0, 2).toUpperCase();
             const div = document.createElement('a');
             div.href = article.link;
             div.target = "_blank";
-            div.className = 'p-6 hover:bg-white/5 transition-all flex gap-4 group block border-b border-white/5 last:border-0';
+            div.className = 'news-item';
             div.innerHTML = `
-                ${article.thumbnail ? `<img src="${article.thumbnail}" class="w-16 h-16 rounded-lg object-cover bg-slate-800 shrink-0 border border-white/10 shadow-lg" />` : 
-                `<div class="w-16 h-16 rounded-lg bg-slate-800 flex items-center justify-center shrink-0 border border-white/10"><span class="material-symbols-outlined text-slate-600 text-sm">news</span></div>`}
-                <div class="flex-1 min-w-0">
-                    <div class="flex justify-between items-start mb-1">
-                        <span class="text-[10px] font-black text-blue-500 uppercase tracking-widest">${article.publisher}</span>
-                        <span class="text-[9px] font-medium text-slate-500">${timeStr}</span>
+                <div style="display:flex; gap: 0.75rem; align-items: flex-start; padding: 0.875rem 1rem; border-bottom: 1px solid rgba(255,255,255,0.05); text-decoration: none; transition: background 0.2s;">
+                    <div style="flex-shrink:0; width:36px; height:36px; border-radius:8px; background:rgba(59,130,246,0.12); border:1px solid rgba(59,130,246,0.2); display:flex; align-items:center; justify-content:center; font-size:10px; font-weight:900; color:#60a5fa; letter-spacing:0.05em;">
+                        ${initials}
                     </div>
-                    <h4 class="text-sm font-bold text-slate-200 leading-tight group-hover:text-blue-400 transition-colors line-clamp-2">${article.title}</h4>
-                    <p class="text-[11px] text-slate-500 mt-1 line-clamp-2 leading-relaxed font-medium">${article.summary || ''}</p>
+                    <div style="flex:1; min-width:0;">
+                        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:4px;">
+                            <span style="font-size:9px; font-weight:900; color:#3b82f6; text-transform:uppercase; letter-spacing:0.1em;">${article.publisher || ''}</span>
+                            <span style="font-size:9px; color:#475569; font-weight:600;">${timeStr}</span>
+                        </div>
+                        <h4 style="font-size:12px; font-weight:700; color:#cbd5e1; line-height:1.4; margin:0 0 4px 0; display:-webkit-box; -webkit-line-clamp:2; line-clamp:2; -webkit-box-orient:vertical; overflow:hidden;">${article.title}</h4>
+                        <p style="font-size:11px; color:#475569; margin:0; display:-webkit-box; -webkit-line-clamp:2; line-clamp:2; -webkit-box-orient:vertical; overflow:hidden; line-height:1.5;">${article.summary || ''}</p>
+                    </div>
                 </div>
             `;
             container.appendChild(div);
@@ -290,6 +325,11 @@ async function loadSectors() {
         if (!container) return;
         container.innerHTML = '';
 
+        if (!data.sectors || data.sectors.length === 0) {
+            container.innerHTML = '<div class="col-span-2 text-xs text-slate-400 font-semibold">Sector data is currently unavailable.</div>';
+            return;
+        }
+
         data.sectors.forEach(sector => {
             const isPositive = sector.change >= 0;
             const div = document.createElement('div');
@@ -308,6 +348,11 @@ async function loadSectors() {
 
 
 document.addEventListener('DOMContentLoaded', () => {
+    const searchInput = document.getElementById('assets-search-input');
+    if (searchInput) {
+        searchInput.addEventListener('input', applyAssetsSearch);
+    }
+
     loadMarketIndices();
     switchCategory('Indian Market');
     loadTopMovers();

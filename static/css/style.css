@@ -29,9 +29,8 @@ body {
   background-color: var(--bg-color);
   color: var(--text-main);
   min-height: 100vh;
-  display: flex;
-  flex-direction: column;
   overflow-x: hidden;
+  padding-top: 64px;
 }
 
 /* Scrollbar */
@@ -131,6 +130,21 @@ nav {
   max-width: 1600px;
   margin: 0 auto;
   width: 100%;
+}
+
+.dashboard-page-main {
+  padding-top: 6.5rem;
+  padding-right: 2.5rem;
+  padding-bottom: 3rem;
+  padding-left: 2.5rem;
+}
+
+@media (max-width: 768px) {
+  .dashboard-page-main {
+    padding-top: 5.75rem;
+    padding-right: 1rem;
+    padding-left: 1rem;
+  }
 }
 
 .grid-dashboard {
@@ -545,29 +559,211 @@ nav {
     height: 4px;
 }
 .indicators-bar::-webkit-scrollbar-thumb {
-    background: rgba(255,255,255,0.1);
+    background: rgba(96, 165, 250, 0.45);
     border-radius: 4px;
 }
 .indicator-toggle {
-    background: rgba(255, 255, 255, 0.05);
-    border: 1px solid rgba(255, 255, 255, 0.1);
-    color: var(--text-muted);
-    padding: 0.25rem 0.75rem;
-    border-radius: 4px;
-    font-size: 0.75rem;
-    font-weight: 600;
+    background: rgba(30, 41, 59, 0.9);
+    border: 1px solid rgba(147, 197, 253, 0.55);
+    color: #eff6ff;
+    padding: 0.42rem 0.95rem;
+    border-radius: 7px;
+    font-size: 0.82rem;
+    font-weight: 800;
     cursor: pointer;
-    transition: all 0.2s;
+    line-height: 1.2;
+    transition: all 0.2s ease;
     white-space: nowrap;
+    min-height: 34px;
+    text-shadow: 0 0 8px rgba(96, 165, 250, 0.18);
 }
 .indicator-toggle:hover {
-    background: rgba(255, 255, 255, 0.1);
-    color: var(--text);
+    background: rgba(59, 130, 246, 0.32);
+    border-color: rgba(147, 197, 253, 0.95);
+    color: #ffffff;
 }
 .indicator-toggle.active {
-    background: rgba(59, 130, 246, 0.2);
-    border-color: rgba(59, 130, 246, 0.5);
-    color: #60a5fa;
+    background: linear-gradient(135deg, rgba(37, 99, 235, 0.45), rgba(30, 64, 175, 0.55));
+    border-color: rgba(191, 219, 254, 0.98);
+    color: #ffffff;
+    box-shadow: 0 0 0 1px rgba(191, 219, 254, 0.5), 0 6px 16px rgba(30, 64, 175, 0.45);
+}
+
+.indicators-bar {
+    background: rgba(15, 23, 42, 0.95) !important;
+    border-top: 1px solid rgba(96, 165, 250, 0.18) !important;
+    border-bottom: 1px solid rgba(96, 165, 250, 0.18) !important;
+    padding: 0.65rem 1.5rem !important;
+    gap: 0.65rem !important;
+    display: flex !important;
+    flex-wrap: wrap !important;
+    align-items: center !important;
+    overflow-x: visible !important;
+}
+
+.indicators-bar > span {
+    color: #e2e8f0 !important;
+    font-size: 0.78rem !important;
+    font-weight: 800 !important;
+    letter-spacing: 0.06em;
+    flex: 0 0 auto;
+}
+
+@media (max-width: 900px) {
+    .indicators-bar {
+        gap: 0.5rem !important;
+    }
+    .indicator-toggle {
+        padding: 0.38rem 0.8rem;
+        font-size: 0.78rem;
+        min-height: 32px;
+    }
 }
 
 .hidden { display: none !important; }
+
+/* Unified AppBar & Terminal Styles */
+.fixed-top {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 64px;
+    background: rgba(11, 19, 38, 0.85);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+    z-index: 1000;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 2rem;
+}
+
+.search-box {
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 9999px;
+    padding: 0.5rem 1rem;
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    transition: all 0.3s;
+}
+
+.search-box:focus-within {
+    border-color: rgba(59, 130, 246, 0.5);
+    background: rgba(255, 255, 255, 0.08);
+}
+
+.search-box input {
+    background: transparent !important;
+    border: none !important;
+    color: white !important;
+    outline: none !important;
+    font-size: 0.75rem !important;
+    width: 240px;
+}
+
+.btn-trade {
+    background: #3b82f6;
+    color: white;
+    border: none;
+    padding: 0.5rem 1.25rem;
+    border-radius: 9999px;
+    font-size: 11px;
+    font-weight: 900;
+    letter-spacing: 0.1em;
+    cursor: pointer;
+    transition: all 0.3s;
+    box-shadow: 0 4px 12px rgba(59, 130, 246, 0.2);
+}
+
+.btn-trade:hover {
+    background: #2563eb;
+    transform: translateY(-1px);
+    box-shadow: 0 6px 16px rgba(59, 130, 246, 0.3);
+}
+
+.flex { display: flex !important; }
+.flex-col { flex-direction: column !important; }
+.items-center { align-items: center !important; }
+.justify-between { justify-content: space-between !important; }
+.gap-2 { gap: 0.5rem !important; }
+.gap-4 { gap: 1rem !important; }
+.gap-6 { gap: 1.5rem !important; }
+.gap-8 { gap: 2rem !important; }
+
+@media (min-width: 768px) { .md\:flex { display: flex !important; } }
+@media (min-width: 1024px) { .lg\:flex { display: flex !important; } }
+@media (min-width: 1280px) { .xl\:flex { display: flex !important; } }
+
+.rounded-lg { border-radius: 0.5rem !important; }
+.rounded-full { border-radius: 9999px !important; }
+.shadow-lg { box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05) !important; }
+
+.text-white { color: white !important; }
+.text-sm { font-size: 0.875rem !important; }
+.text-lg { font-size: 1.125rem !important; }
+.text-xl { font-size: 1.25rem !important; }
+.font-black { font-weight: 900 !important; }
+.font-bold { font-weight: 700 !important; }
+.tracking-tighter { letter-spacing: -0.05em !important; }
+.tracking-widest { letter-spacing: 0.1em !important; }
+
+.absolute { position: absolute !important; }
+.relative { position: relative !important; }
+
+/* Font Fixes */
+.material-symbols-outlined {
+    font-family: 'Material Symbols Outlined' !important;
+    font-weight: normal !important;
+    font-style: normal !important;
+    line-height: 1 !important;
+    letter-spacing: normal !important;
+    text-transform: none !important;
+    display: inline-block !important;
+    white-space: nowrap !important;
+    word-wrap: normal !important;
+    direction: ltr !important;
+    -webkit-font-smoothing: antialiased !important;
+    text-rendering: optimizeLegibility !important;
+    -moz-osx-font-smoothing: grayscale !important;
+    font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24 !important;
+}
+
+/* Missing Utilities */
+.gap-1 { gap: 0.25rem !important; }
+.gap-3 { gap: 0.75rem !important; }
+.gap-5 { gap: 1.25rem !important; }
+
+.px-1 { padding-left: 0.25rem !important; padding-right: 0.25rem !important; }
+.px-2 { padding-left: 0.5rem !important; padding-right: 0.5rem !important; }
+.py-1 { padding-top: 0.25rem !important; padding-bottom: 0.25rem !important; }
+.py-1\.5 { padding-top: 0.375rem !important; padding-bottom: 0.375rem !important; }
+
+.bg-white\/5 { background-color: rgba(255, 255, 255, 0.05) !important; }
+.border-white\/10 { border: 1px solid rgba(255, 255, 255, 0.1) !important; }
+
+/* AppBar Specific Overrides */
+header nav:not(.ap-nav) {
+    display: flex !important;
+    align-items: center !important;
+    gap: 0.25rem !important;
+}
+
+header nav:not(.ap-nav) a {
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    white-space: nowrap !important;
+}
+
+.search-box span.material-symbols-outlined {
+    font-size: 18px !important;
+}
+
+/* Ensure icons are always icons */
+[class^="material-symbols-"], [class*=" material-symbols-"] {
+    font-family: 'Material Symbols Outlined' !important;
+}

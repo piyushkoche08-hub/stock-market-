@@ -94,6 +94,7 @@ def get_stock_data_service(ticker, period='2y', interval='1d'):
     ticker = ticker.strip().upper().replace(" ", "")
     
     # Precise Interval & Period Mapping for Institutional Grade Control
+    # Only override period if it's the default '2y' or not provided
     mapping = {
         '1m': ('1m', '7d'),
         '2m': ('2m', '60d'),
@@ -104,8 +105,6 @@ def get_stock_data_service(ticker, period='2y', interval='1d'):
         '30m': ('30m', '60d'),
         '1h': ('1h', '2y'),
         '1H': ('1h', '2y'),
-        '2H': ('1h', '2y'),
-        '3H': ('1h', '2y'),
         '1d': ('1d', 'max'),
         '1D': ('1d', 'max'),
         '1wk': ('1wk', 'max'),
@@ -114,7 +113,9 @@ def get_stock_data_service(ticker, period='2y', interval='1d'):
 
     if interval in mapping:
         yf_interval, yf_period = mapping[interval]
-        period = yf_period
+        # Use requested period if it's NOT the default '2y', else use mapping's suggested period
+        if period == '2y' or not period:
+            period = yf_period
         interval = yf_interval
 
     # Candidate Resolution Logic
@@ -668,34 +669,47 @@ def get_sectors_service():
             "NIFTY AUTO": "^CNXAUTO",
             "NIFTY PHARMA": "^CNXPHARMA",
             "NIFTY FMCG": "^CNXFMCG",
-            "NIFTY METAL": "^CNXMETAL"
+            "NIFTY METAL": "^CNXMETAL",
+            "NIFTY REALTY": "^CNXREALTY",
+            "NIFTY ENERGY": "^CNXENERGY",
+            "NIFTY MEDIA": "^CNXMEDIA",
+            "NIFTY PSU BANK": "^CNXPSUBANK",
+            "NIFTY PVT BANK": "^NIFTYPVTBANK",
+            "NIFTY FIN SERVICE": "^CNXFINANCE",
+            "NIFTY INFRA": "^CNXINFRA",
+            "NIFTY CONSUMPTION": "^CNXCONSUMPTION"
         }
         
         sector_data = []
         for name, symbol in sectors.items():
+            change = 0.0
             try:
                 ticker_obj = yf.Ticker(symbol)
                 hist = ticker_obj.history(period="2d")
                 if len(hist) >= 2:
                     price = hist['Close'].iloc[-1]
                     prev_price = hist['Close'].iloc[-2]
-                    change = ((price - prev_price) / prev_price) * 100
-                    sector_data.append({
-                        "name": name,
-                        "change": round(clean_float(change), 2)
-                    })
+                    if prev_price and clean_float(prev_price) != 0:
+                        change = ((price - prev_price) / prev_price) * 100
             except:
-                continue
+                # Keep sector in response even if live data fetch fails.
+                pass
+
+            sector_data.append({
+                "name": name,
+                "change": round(clean_float(change), 2)
+            })
         return {"sectors": sector_data}, None
     except Exception as e:
         return {"sectors": []}, str(e)
 
 def get_market_category_service(category):
     try:
-        if category not in POPULAR_STOCKS:
+        stock_universe = load_popular_stocks() or POPULAR_STOCKS
+        if category not in stock_universe:
             return None, "Category not found"
             
-        assets = POPULAR_STOCKS[category]
+        assets = stock_universe[category]
         tickers = [a["ticker"] for a in assets]
         
         # Batch download for speed and reliability
