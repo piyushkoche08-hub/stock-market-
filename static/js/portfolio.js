@@ -7,12 +7,24 @@ const portfolioAssets = [
     { ticker: 'PLTR', shares: 5000, costBasis: 25.10, name: 'Palantir Technologies', symbol: 'PT' }
 ];
 
+const safeEl = (id) => document.getElementById(id) || {
+    innerHTML: '', textContent: '', value: '', className: '',
+    classList: { add:()=>{}, remove:()=>{}, toggle:()=>{}, contains:()=>false },
+    style: {},
+    addEventListener: ()=>{},
+    setAttribute: ()=>{},
+    getAttribute: ()=>null,
+    appendChild: ()=>{},
+    parentElement: { className: '' },
+    remove: ()=>{}
+};
+
 const elements = {
-    totalValue: document.getElementById('total-value'),
-    ytdReturn: document.getElementById('ytd-return'),
-    dailyPnl: document.getElementById('daily-pnl'),
-    unrealizedGain: document.getElementById('unrealized-gain'),
-    holdingsBody: document.getElementById('holdings-body')
+    totalValue: safeEl('total-value'),
+    ytdReturn: safeEl('ytd-return'),
+    dailyPnl: safeEl('daily-pnl'),
+    unrealizedGain: safeEl('unrealized-gain'),
+    holdingsBody: safeEl('holdings-body')
 };
 
 const formatCurrency = (val, currency = 'USD') => {

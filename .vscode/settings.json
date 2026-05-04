@@ -1,3 +1,4 @@
 {
-    "livePreview.defaultPreviewPath": "/temp.stock.html"
+    "livePreview.defaultPreviewPath": "/temp.stock.html",
+    "css.lint.unknownAtRules": "ignore"
 }

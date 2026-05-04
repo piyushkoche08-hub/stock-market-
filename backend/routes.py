@@ -14,7 +14,8 @@ from .services import (
 
 api_bp = Blueprint('api', __name__, url_prefix='/api')
 
-@api_bp.route("/stocks/<ticker>", methods=["GET"])
+@api_bp.route("/stock/<ticker>", methods=["GET"])
+@api_bp.route("/stocks/<ticker>", methods=["GET"]) # keep old one for backward compatibility
 def get_stock_data(ticker):
     period = request.args.get('period', '2y')
     interval = request.args.get('interval', '1d')

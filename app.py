@@ -11,6 +11,44 @@ CORS(app)
 # Register API routes
 app.register_blueprint(api_bp)
 
+from backend.services import get_stock_data_service
+from flask import request, jsonify
+
+@app.route('/stock/<symbol>', methods=['GET'])
+def get_stock_pure(symbol):
+    period = request.args.get('period', '1y')
+    interval = request.args.get('interval', '1d')
+    data, error = get_stock_data_service(symbol, period, interval)
+    if error:
+        return jsonify({"error": error}), 400
+    
+    # Strictly format as requested array
+    result = []
+    if data and "data" in data:
+        for row in data["data"]:
+            result.append({
+                "time": row.get("Date"),
+                "open": row.get("Open"),
+                "high": row.get("High"),
+                "low": row.get("Low"),
+                "close": row.get("Close"),
+                "volume": row.get("Volume", 0)
+            })
+    if not result:
+        return jsonify({"error": "No data found for this timeframe"}), 400
+    return jsonify(result)
+
+@app.route('/index', methods=['GET'])
+def get_indices():
+    from backend.services import get_market_summary_service
+    data, error = get_market_summary_service()
+    if error:
+        return jsonify({"error": error}), 500
+    # Filter to only NIFTY, SENSEX, NASDAQ, S&P 500 as requested
+    wanted = ["NIFTY 50", "SENSEX", "NASDAQ", "S&P 500"]
+    filtered = [item for item in data.get("summary", []) if item["name"] in wanted]
+    return jsonify(filtered)
+
 @app.route('/')
 def index():
     return render_template('index.html')

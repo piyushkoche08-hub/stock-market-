@@ -58,6 +58,7 @@ async function loadMarketIntelligence() {
 }
 
 function renderMarketCards(summary) {
+    if (!marketCardsWrapper) return;
     marketCardsWrapper.innerHTML = '';
     if (!summary || summary.length === 0) {
         marketCardsWrapper.innerHTML = '<div class="glass-card p-4 rounded-xl text-center"><p class="text-error text-sm font-bold">Market Data Offline</p><p class="text-[10px] text-slate-500 mt-1">Check your connection or API.</p></div>';
@@ -95,6 +96,7 @@ function renderMarketCards(summary) {
 }
 
 function renderNews(news, container) {
+    if (!container) return;
     container.innerHTML = '';
     if (!news || news.length === 0) {
         container.innerHTML = '<p class="text-center w-full text-slate-500 col-span-2">No recent reports found.</p>';
@@ -136,6 +138,7 @@ function renderNews(news, container) {
 }
 
 function showLoading(show) {
+    if (!loadingOverlay) return;
     if (show) loadingOverlay.classList.remove('hidden');
     else loadingOverlay.classList.add('hidden');
 }

@@ -1,4 +1,6 @@
-const API_BASE = '/api';
+const isLocalFile = window.location.protocol === 'file:';
+const API_BASE = isLocalFile ? 'http://127.0.0.1:8000/api' : '/api';
+const ROOT_API_BASE = isLocalFile ? 'http://127.0.0.1:8000' : '';
 
 const formatCurrency = (val, currency = 'INR', isIndex = false) => {
     if(!val && val !== 0) return '-';
@@ -22,7 +24,7 @@ const formatNumber = (val) => {
     return val.toLocaleString('en-IN');
 };
 
-let currentCategory = 'Indian Stocks';
+let currentCategory = 'Indian Market';
 
     async function renderSparkline(canvasId, ticker, colorHex) {
         try {
@@ -75,38 +77,66 @@ let currentCategory = 'Indian Stocks';
 
 async function loadMarketIndices() {
     try {
-        const res = await fetch(`${API_BASE}/market-summary`);
+        const res = await fetch(`${ROOT_API_BASE}/index`);
         const data = await res.json();
-        const container = document.getElementById('top-indices-row');
+        const container = document.getElementById('top-indices-table-body');
+        if (!container) return;
         container.innerHTML = '';
 
-        // Show a mix of indices
-        const indicesToShow = ["NIFTY 50", "SENSEX", "NASDAQ", "NIKKEI 225"];
-        const summary = data.summary.filter(i => indicesToShow.includes(i.name));
+        const indicesToShow = [
+            { symbol: '^NSEI', name: 'NIFTY 50' },
+            { symbol: '^BSESN', name: 'SENSEX' },
+            { symbol: '^IXIC', name: 'NASDAQ Composite' },
+            { symbol: '^GSPC', name: 'S&P 500' },
+            { symbol: '^FTSE', name: 'FTSE 100' }
+        ];
 
-        summary.forEach(item => {
+        indicesToShow.forEach(idx => {
+            const item = data.find(i => i.symbol === idx.symbol) || {
+                symbol: idx.symbol, name: idx.name, price: 0, changePercent: 0, currency: idx.symbol.includes('^NSE') ? 'INR' : 'USD'
+            };
+            
             const isPositive = item.changePercent >= 0;
             const colorClass = isPositive ? 'text-secondary' : 'text-error';
-            const colorHex = isPositive ? '#00D09C' : '#EB5B3C';
-            const canvasId = `top-chart-${item.symbol.replace('^', '')}`;
+            const colorHex = isPositive ? '#00D09C' : '#ef4444';
+            const canvasId = `top-chart-${item.symbol.replace('^', '').replace('=', '')}`;
 
-            const div = document.createElement('div');
-            div.className = 'glass-panel p-6 flex flex-col justify-between hover:border-blue-500/30 transition-all cursor-pointer';
-            div.innerHTML = `
-                <div class="flex justify-between items-start mb-4">
-                    <span class="text-[10px] font-black text-slate-400 uppercase tracking-widest">${item.symbol.replace('^', '')}</span>
-                    <span class="${isPositive ? 'bg-secondary/10 text-secondary' : 'bg-error/10 text-error'} px-2 py-0.5 rounded text-[10px] font-black">
-                        ${isPositive ? '+' : ''}${item.changePercent.toFixed(2)}%
-                    </span>
-                </div>
-                <div class="flex items-end justify-between">
-                    <h2 class="text-xl font-black text-white">${formatCurrency(item.price, item.currency, true)}</h2>
-                    <div class="w-16 h-8 opacity-40">
+            const tr = document.createElement('tr');
+            tr.className = 'hover:bg-white/2 transition-all cursor-pointer group border-b border-white/5 last:border-0';
+            tr.innerHTML = `
+                <td class="px-8 py-5">
+                    <div class="flex items-center gap-4">
+                        <div class="w-8 h-8 rounded-lg bg-slate-800 border border-white/10 flex items-center justify-center text-[10px] font-black text-slate-500 group-hover:text-blue-400 transition-colors">
+                            ${idx.name.charAt(0)}
+                        </div>
+                        <div class="flex flex-col">
+                            <span class="text-xs font-black text-white group-hover:text-blue-400 transition-colors tracking-tight">${idx.name}</span>
+                            <span class="text-[9px] text-slate-600 font-mono font-bold uppercase">${item.symbol}</span>
+                        </div>
+                    </div>
+                </td>
+                <td class="px-8 py-5 font-mono text-xs font-black text-white">
+                    ${formatCurrency(item.price, item.currency, true)}
+                </td>
+                <td class="px-8 py-5">
+                    <div class="flex flex-col">
+                        <div class="flex items-center gap-1 text-xs font-black ${colorClass}">
+                            <span class="material-symbols-outlined text-xs">${isPositive ? 'trending_up' : 'trending_down'}</span>
+                            ${isPositive ? '+' : ''}${item.changePercent.toFixed(2)}%
+                        </div>
+                        <span class="text-[9px] text-slate-600 font-bold">Today's Shift</span>
+                    </div>
+                </td>
+                <td class="px-8 py-5">
+                    <div class="w-32 h-10 mx-auto opacity-80" style="width: 120px; height: 40px;">
                         <canvas id="${canvasId}"></canvas>
                     </div>
-                </div>
+                </td>
+                <td class="px-8 py-5 text-right">
+                    <button class="px-3 py-1.5 bg-blue-600/10 hover:bg-blue-600 text-blue-500 hover:text-white text-[10px] font-black uppercase tracking-widest rounded-lg border border-blue-500/20 transition-all active:scale-95">Analyze</button>
+                </td>
             `;
-            container.appendChild(div);
+            container.appendChild(tr);
             renderSparkline(canvasId, item.symbol, colorHex);
         });
     } catch (e) { console.error("Indices error:", e); }
@@ -115,7 +145,7 @@ async function loadMarketIndices() {
 async function switchCategory(cat) {
     currentCategory = cat;
     // Update Tabs
-    ['Indian Stocks', 'US Stocks', 'Forex', 'Crypto', 'Meme Coins'].forEach(c => {
+    ['Indian Market', 'US Market', 'Forex', 'Crypto', 'Meme Coins'].forEach(c => {
         const btn = document.getElementById(`cat-${c}`);
         if(c === cat) {
             btn.className = 'px-4 py-2 text-xs font-bold bg-blue-500 text-white rounded-lg transition-all whitespace-nowrap';
@@ -135,7 +165,7 @@ async function switchCategory(cat) {
 
 async function loadCategoryAssets(cat) {
     const body = document.getElementById('category-assets-body');
-    body.innerHTML = '<tr><td colspan="5" class="p-12 text-center"><div class="w-6 h-6 border-2 border-blue-500 border-t-transparent rounded-full animate-spin mx-auto mb-2"></div><span class="text-xs font-bold text-slate-500">UPDATING MARKET...</span></td></tr>';
+    if (body) body.innerHTML = '<tr><td colspan="5" class="p-12 text-center"><div class="w-6 h-6 border-2 border-blue-500 border-t-transparent rounded-full animate-spin mx-auto mb-2"></div><span class="text-xs font-bold text-slate-500">UPDATING MARKET...</span></td></tr>';
     
     try {
         const res = await fetch(`${API_BASE}/market-category/${encodeURIComponent(cat)}`);
@@ -157,7 +187,7 @@ async function loadCategoryAssets(cat) {
             
             // Smarter currency detection
             let currency = 'USD';
-            if (cat === 'Indian Stocks' || asset.ticker.endsWith('.NS') || asset.ticker.endsWith('.BO')) {
+            if (cat === 'Indian Market' || asset.ticker.endsWith('.NS') || asset.ticker.endsWith('.BO')) {
                 currency = 'INR';
             } else if (cat === 'Forex' && asset.ticker.startsWith('USDINR')) {
                 currency = 'INR';
@@ -190,6 +220,7 @@ async function loadGeneralNews(cat = null) {
         const res = await fetch(url);
         const data = await res.json();
         const container = document.getElementById('news-container');
+        if (!container) return;
         container.innerHTML = '';
 
         data.news.forEach(article => {
@@ -227,6 +258,7 @@ async function loadTopMovers() {
         const res = await fetch(`${API_BASE}/top-movers`);
         const data = await res.json();
         const container = document.getElementById('movers-mini-list');
+        if (!container) return;
         container.innerHTML = '';
 
         data.gainers.slice(0, 5).forEach(stock => {
@@ -255,6 +287,7 @@ async function loadSectors() {
         const res = await fetch(`${API_BASE}/sectors`);
         const data = await res.json();
         const container = document.getElementById('sector-mini-grid');
+        if (!container) return;
         container.innerHTML = '';
 
         data.sectors.forEach(sector => {
@@ -276,7 +309,7 @@ async function loadSectors() {
 
 document.addEventListener('DOMContentLoaded', () => {
     loadMarketIndices();
-    switchCategory('Indian Stocks');
+    switchCategory('Indian Market');
     loadTopMovers();
     loadSectors();
     

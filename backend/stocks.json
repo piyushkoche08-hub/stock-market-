@@ -1,72 +1,40 @@
 {
-    "Indian Stocks": [
+    "Indian Market": [
         {"ticker": "RELIANCE.NS", "name": "Reliance Industries Ltd."},
         {"ticker": "TCS.NS", "name": "Tata Consultancy Services Ltd."},
         {"ticker": "HDFCBANK.NS", "name": "HDFC Bank Ltd."},
         {"ticker": "ICICIBANK.NS", "name": "ICICI Bank Ltd."},
-        {"ticker": "INFY.NS", "name": "Infosys Ltd."},
         {"ticker": "SBIN.NS", "name": "State Bank of India"},
-        {"ticker": "BHARTIARTL.NS", "name": "Bharti Airtel Ltd."},
-        {"ticker": "ITC.NS", "name": "ITC Ltd."},
-        {"ticker": "HINDUNILVR.NS", "name": "Hindustan Unilever Ltd."},
-        {"ticker": "LT.NS", "name": "Larsen & Toubro Ltd."},
-        {"ticker": "AXISBANK.NS", "name": "Axis Bank Ltd."},
-        {"ticker": "KOTAKBANK.NS", "name": "Kotak Mahindra Bank Ltd."},
-        {"ticker": "BAJFINANCE.NS", "name": "Bajaj Finance Ltd."},
-        {"ticker": "ASIANPAINT.NS", "name": "Asian Paints Ltd."},
-        {"ticker": "MARUTI.NS", "name": "Maruti Suzuki India Ltd."},
-        {"ticker": "SUNPHARMA.NS", "name": "Sun Pharmaceutical Industries Ltd."},
-        {"ticker": "TITAN.NS", "name": "Titan Company Ltd."},
-        {"ticker": "TATAMOTORS.NS", "name": "Tata Motors Ltd."},
-        {"ticker": "NTPC.NS", "name": "NTPC Ltd."},
-        {"ticker": "POWERGRID.NS", "name": "Power Grid Corp of India"}
+        {"ticker": "^NSEI", "name": "Nifty 50"},
+        {"ticker": "^BSESN", "name": "Sensex"},
+        {"ticker": "^NSEBANK", "name": "Bank Nifty"}
     ],
-    "US Stocks": [
+    "US Market": [
         {"ticker": "AAPL", "name": "Apple Inc."},
         {"ticker": "MSFT", "name": "Microsoft Corporation"},
-        {"ticker": "GOOGL", "name": "Alphabet Inc."},
-        {"ticker": "AMZN", "name": "Amazon.com Inc."},
         {"ticker": "TSLA", "name": "Tesla, Inc."},
         {"ticker": "NVDA", "name": "NVIDIA Corporation"},
-        {"ticker": "META", "name": "Meta Platforms, Inc."},
-        {"ticker": "NFLX", "name": "Netflix, Inc."},
-        {"ticker": "BRK-B", "name": "Berkshire Hathaway Inc."},
-        {"ticker": "V", "name": "Visa Inc."},
-        {"ticker": "JPM", "name": "JPMorgan Chase & Co."},
-        {"ticker": "WMT", "name": "Walmart Inc."},
-        {"ticker": "MA", "name": "Mastercard Incorporated"},
-        {"ticker": "PG", "name": "Procter & Gamble Co."},
-        {"ticker": "UNH", "name": "UnitedHealth Group"}
+        {"ticker": "GOOGL", "name": "Alphabet Inc."},
+        {"ticker": "AMZN", "name": "Amazon.com Inc."},
+        {"ticker": "^GSPC", "name": "S&P 500"},
+        {"ticker": "^IXIC", "name": "NASDAQ"}
     ],
     "Forex": [
         {"ticker": "USDINR=X", "name": "USD to INR"},
         {"ticker": "EURUSD=X", "name": "EUR to USD"},
         {"ticker": "GBPUSD=X", "name": "GBP to USD"},
-        {"ticker": "USDJPY=X", "name": "USD to JPY"},
-        {"ticker": "AUDUSD=X", "name": "AUD to USD"},
-        {"ticker": "USDCAD=X", "name": "USD to CAD"},
-        {"ticker": "USDCHF=X", "name": "USD to CHF"},
-        {"ticker": "NZDUSD=X", "name": "NZD to USD"},
-        {"ticker": "EURINR=X", "name": "EUR to INR"},
-        {"ticker": "GBPINR=X", "name": "GBP to INR"},
-        {"ticker": "JPYINR=X", "name": "JPY to INR"}
+        {"ticker": "USDJPY=X", "name": "USD to JPY"}
     ],
     "Crypto": [
         {"ticker": "BTC-USD", "name": "Bitcoin"},
         {"ticker": "ETH-USD", "name": "Ethereum"},
         {"ticker": "SOL-USD", "name": "Solana"},
-        {"ticker": "BNB-USD", "name": "Binance Coin"},
-        {"ticker": "XRP-USD", "name": "XRP"},
-        {"ticker": "ADA-USD", "name": "Cardano"},
-        {"ticker": "AVAX-USD", "name": "Avalanche"},
-        {"ticker": "DOT-USD", "name": "Polkadot"}
+        {"ticker": "BNB-USD", "name": "Binance Coin"}
     ],
     "Meme Coins": [
         {"ticker": "DOGE-USD", "name": "Dogecoin"},
         {"ticker": "SHIB-USD", "name": "Shiba Inu"},
         {"ticker": "PEPE-USD", "name": "Pepe"},
-        {"ticker": "BONK-USD", "name": "Bonk"},
-        {"ticker": "FLOKI-USD", "name": "Floki"},
-        {"ticker": "WIF-USD", "name": "dogwifhat"}
+        {"ticker": "FLOKI-USD", "name": "Floki Inu"}
     ]
 }

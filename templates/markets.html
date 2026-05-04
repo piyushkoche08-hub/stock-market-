@@ -1,262 +1,217 @@
 <!DOCTYPE html>
-
-<html class="dark" lang="en"><head>
-<meta charset="utf-8"/>
-<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
-<title>Markets | Stock Predictor Pro</title>
-<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
-<script id="tailwind-config">
-    tailwind.config = {
-      darkMode: "class",
-      theme: {
-        extend: {
-          "colors": {
-            "tertiary-container": "#ff5451", "on-tertiary": "#68000a", "tertiary-fixed": "#ffdad7", "on-secondary-fixed-variant": "#005236", "error": "#ffb4ab", "on-primary-fixed": "#001a42", "surface-tint": "#adc6ff", "primary-fixed-dim": "#adc6ff", "inverse-on-surface": "#283044", "on-tertiary-fixed-variant": "#930013", "background": "#0b1326", "on-error": "#690005", "surface-bright": "#31394d", "on-secondary-container": "#00311f", "inverse-surface": "#dae2fd", "secondary": "#4edea3", "outline-variant": "#424754", "secondary-container": "#00a572", "primary-container": "#4d8eff", "primary": "#adc6ff", "error-container": "#93000a", "primary-fixed": "#d8e2ff", "surface-container-high": "#222a3d", "surface-container": "#171f33", "on-background": "#dae2fd", "on-secondary-fixed": "#002113", "outline": "#8c909f", "on-tertiary-container": "#5c0008", "secondary-fixed-dim": "#4edea3", "on-secondary": "#003824", "surface": "#0b1326", "surface-container-low": "#131b2e", "on-surface-variant": "#c2c6d6", "secondary-fixed": "#6ffbbe", "surface-variant": "#2d3449", "on-primary-fixed-variant": "#004395", "tertiary-fixed-dim": "#ffb3ad", "surface-container-highest": "#2d3449", "on-primary": "#002e6a", "on-surface": "#dae2fd", "on-tertiary-fixed": "#410004", "on-primary-container": "#00285d", "surface-dim": "#0b1326", "tertiary": "#ffb3ad", "surface-container-lowest": "#060e20", "inverse-primary": "#005ac2", "on-error-container": "#ffdad6"
-          },
-          "borderRadius": { "DEFAULT": "0.125rem", "lg": "0.25rem", "xl": "0.5rem", "full": "0.75rem" },
-          "spacing": { "xl": "32px", "layout-margin": "40px", "base": "4px", "xs": "4px", "md": "16px", "sm": "8px", "lg": "24px", "grid-gutter": "20px" },
-          "fontFamily": { "label-caps": ["Inter"], "body-md": ["Inter"], "data-tabular": ["Inter"], "heading-lg": ["Inter"], "display-xl": ["Inter"] },
-          "fontSize": {
-            "label-caps": ["12px", {"lineHeight": "1", "letterSpacing": "0.05em", "fontWeight": "600"}],
-            "body-md": ["16px", {"lineHeight": "1.5", "fontWeight": "400"}],
-            "data-tabular": ["14px", {"lineHeight": "1.4", "fontWeight": "500"}],
-            "heading-lg": ["24px", {"lineHeight": "1.3", "fontWeight": "600"}],
-            "display-xl": ["36px", {"lineHeight": "1.2", "letterSpacing": "-0.02em", "fontWeight": "700"}]
-          }
-        },
-      },
-    }
-
-</script>
-<link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" />
-<!-- Chart.js Libraries -->
-<script src="https://cdn.jsdelivr.net/npm/chart.js@3.9.1/dist/chart.min.js"></script>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Markets Terminal | AlphaPulse X</title>
+    <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries" crossorigin="anonymous"></script>
+    <script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        primary: "#3b82f6",
+                        secondary: "#00D09C",
+                        error: "#ef4444",
+                        background: "#0b1326",
+                        surface: "#171f33",
+                        "surface-variant": "#2d3449"
+                    }
+                }
+            }
+        }
+    </script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" crossorigin="anonymous">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet" crossorigin="anonymous">
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" />
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@3.9.1/dist/chart.min.js" crossorigin="anonymous"></script>
+    <style>
+        body { font-family: 'Inter', sans-serif; background-color: #0b1326; color: #dae2fd; scrollbar-width: thin; scrollbar-color: #2d3449 transparent; }
+        .glass-panel { background: rgba(23, 31, 51, 0.7); backdrop-filter: blur(12px); border: 1px solid rgba(255,255,255,0.08); border-radius: 16px; }
+        .no-scrollbar::-webkit-scrollbar { display: none; }
+        .asset-row:hover { background: rgba(59, 130, 246, 0.05); }
+        .tab-active { background: #3b82f6; color: white; box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3); }
+        @keyframes pulse-soft { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }
+        .live-indicator { width: 6px; height: 6px; background: #00D09C; border-radius: 50%; animation: pulse-soft 2s infinite; }
+    </style>
 </head>
-<body class="bg-background text-on-background font-body-md min-h-screen antialiased">
-    <!-- Top Floating Navbar -->
-    <header class="fixed top-0 right-0 left-0 lg:left-64 z-40 h-20 px-8 flex items-center justify-between pointer-events-none">
-        <div class="glass-panel w-full h-14 flex items-center justify-between px-6 pointer-events-auto border-white/5 bg-surface/40">
-            <div class="flex items-center flex-1 max-w-xl">
-                <span class="material-symbols-outlined text-slate-500 mr-3">search</span>
-                <input id="ticker-input" type="text" placeholder="Search markets (e.g. NIFTY, NASDAQ)..." 
-                    class="bg-transparent border-none focus:ring-0 text-sm w-full font-medium placeholder:text-slate-600">
+<body class="antialiased">
+    <!-- Institutional Top Navbar -->
+    <header class="fixed top-0 left-0 right-0 h-16 bg-background/80 backdrop-blur-xl border-b border-white/5 z-50 px-8 flex items-center justify-between">
+        <div class="flex items-center gap-8">
+            <h1 class="text-xl font-black tracking-tighter flex items-center gap-2">
+                <span class="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center shadow-lg shadow-blue-500/20">
+                    <span class="material-symbols-outlined text-white text-sm" style="font-variation-settings: 'FILL' 1;">query_stats</span>
+                </span>
+                <span>AlphaPulse <span class="text-blue-500">Terminal</span></span>
+            </h1>
+            <div class="hidden lg:flex items-center bg-white/5 rounded-full px-4 py-1.5 border border-white/10 group focus-within:border-blue-500/50 transition-all">
+                <span class="material-symbols-outlined text-slate-500 text-sm group-focus-within:text-blue-400">search</span>
+                <input type="text" placeholder="Search markets (e.g. NIFTY, NASDAQ)..." class="bg-transparent border-none focus:ring-0 text-xs w-64 placeholder:text-slate-600 font-medium">
             </div>
-            
-            <div class="flex items-center gap-4">
-                <button class="p-2 text-slate-400 hover:text-white transition-colors relative">
-                    <span class="material-symbols-outlined text-xl">notifications</span>
-                    <span class="absolute top-2 right-2 w-2 h-2 bg-primary rounded-full border-2 border-surface"></span>
-                </button>
-                <div class="w-8 h-8 rounded-full bg-primary/20 border border-primary/40 flex items-center justify-center">
-                    <span class="material-symbols-outlined text-primary text-lg">person</span>
-                </div>
-                <button class="bg-primary hover:bg-primary/80 px-4 py-1.5 rounded-lg text-[10px] font-black tracking-widest text-white transition-all pointer-events-auto">TRADE</button>
+        </div>
+        
+        <div class="flex items-center gap-6">
+            <button class="relative text-slate-400 hover:text-white transition-colors">
+                <span class="material-symbols-outlined text-xl">notifications</span>
+                <span class="absolute -top-1 -right-1 w-2 h-2 bg-red-500 rounded-full border-2 border-background"></span>
+            </button>
+            <div class="w-8 h-8 rounded-full bg-slate-800 border border-white/10 flex items-center justify-center cursor-pointer hover:border-blue-500 transition-all">
+                <span class="material-symbols-outlined text-slate-300 text-lg">person</span>
             </div>
+            <button class="bg-blue-600 hover:bg-blue-500 text-white px-5 py-1.5 rounded-full text-[11px] font-black tracking-widest transition-all shadow-lg shadow-blue-600/20">TRADE</button>
         </div>
     </header>
 
-    <aside id="sidebar" class="fixed left-0 top-0 h-full w-64 bg-surface border-r border-white/10 z-40 lg:flex flex-col hidden transition-all duration-300">
-        <div class="p-6 flex items-center justify-between">
-            <h1 class="text-xl font-black text-white tracking-tighter flex items-center gap-2">
-                <span class="w-8 h-8 bg-primary rounded-lg flex items-center justify-center">
-                    <span class="material-symbols-outlined text-white text-sm" style="font-variation-settings: 'FILL' 1;">bolt</span>
-                </span>
-                <span>PREDICTOR <span class="text-primary">PRO</span></span>
-            </h1>
+    <main class="pt-24 px-8 pb-12 max-w-[1600px] mx-auto">
+        <!-- Sub Header -->
+        <div class="mb-8">
+            <p class="text-slate-400 text-sm font-medium">Professional real-time asset tracking across all sectors.</p>
         </div>
 
-        <nav class="flex-1 px-4 space-y-1">
-            <a href="{{ url_for('index') }}" class="sidebar-item">
-                <span class="material-symbols-outlined">dashboard</span>
-                <span class="font-semibold text-sm">Dashboard</span>
-            </a>
-            <a href="{{ url_for('markets') }}" class="sidebar-item active">
-                <span class="material-symbols-outlined">monitoring</span>
-                <span class="font-semibold text-sm">Markets</span>
-            </a>
-            <a href="{{ url_for('reports') }}" class="sidebar-item">
-                <span class="material-symbols-outlined">description</span>
-                <span class="font-semibold text-sm">Reports</span>
-            </a>
-            <a href="{{ url_for('portfolio') }}" class="sidebar-item">
-                <span class="material-symbols-outlined">account_balance_wallet</span>
-                <span class="font-semibold text-sm">Portfolio</span>
-            </a>
+        <!-- Market Quick Tabs -->
+        <div class="flex gap-2 mb-10 overflow-x-auto no-scrollbar pb-2">
+            <button onclick="switchCategory('Indian Market')" id="cat-Indian Market" class="px-6 py-2.5 rounded-full text-xs font-bold transition-all whitespace-nowrap tab-active">Indian Market</button>
+            <button onclick="switchCategory('US Market')" id="cat-US Market" class="px-6 py-2.5 rounded-full text-xs font-bold text-slate-500 hover:bg-white/5 whitespace-nowrap">US Market</button>
+            <button onclick="switchCategory('Forex')" id="cat-Forex" class="px-6 py-2.5 rounded-full text-xs font-bold text-slate-500 hover:bg-white/5 whitespace-nowrap">Forex</button>
+            <button onclick="switchCategory('Crypto')" id="cat-Crypto" class="px-6 py-2.5 rounded-full text-xs font-bold text-slate-500 hover:bg-white/5 whitespace-nowrap">Crypto</button>
+            <button onclick="switchCategory('Meme Coins')" id="cat-Meme Coins" class="px-6 py-2.5 rounded-full text-xs font-bold text-slate-500 hover:bg-white/5 whitespace-nowrap">Meme Coins</button>
+        </div>
 
-            <div class="pt-8 pb-2 px-4">
-                <span class="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Market Watch</span>
+        <!-- Professional Global Indices Table Section -->
+        <div class="glass-panel overflow-hidden mb-12 border border-blue-500/10">
+            <div class="p-6 border-b border-white/5 bg-slate-900/20 flex justify-between items-center">
+                <h3 class="text-sm font-black text-white uppercase tracking-widest flex items-center gap-2">
+                    <span class="material-symbols-outlined text-blue-500 text-lg">monitoring</span>
+                    Global Markets Overview
+                </h3>
+                <div class="flex items-center gap-2">
+                    <span class="w-2 h-2 rounded-full bg-secondary animate-pulse"></span>
+                    <span class="text-[10px] font-black text-secondary uppercase tracking-widest">Live Updates</span>
+                </div>
             </div>
-            <div id="popular-stocks-list" class="space-y-1 overflow-y-auto max-h-[300px] custom-scrollbar px-2">
-                <!-- Populated by JS if needed -->
-            </div>
-        </nav>
-
-        <div class="px-4 mt-auto">
-            <div class="glass-panel p-4 bg-primary/5 border-primary/20 mb-4">
-                <p class="text-[10px] font-bold text-primary uppercase tracking-widest mb-1">Elite Tier</p>
-                <p class="text-[10px] text-slate-400 mb-3">Unlock institutional-grade predictive analytics.</p>
-                <button class="w-full py-2 bg-primary text-white text-[10px] font-black uppercase tracking-widest rounded-lg hover:brightness-110 transition-all">Upgrade</button>
+            <div class="overflow-x-auto no-scrollbar">
+                <table class="w-full text-left">
+                    <thead>
+                        <tr class="bg-white/2 border-b border-white/5">
+                            <th class="px-8 py-4 text-[10px] font-black text-slate-500 uppercase tracking-widest">Market Index</th>
+                            <th class="px-8 py-4 text-[10px] font-black text-slate-500 uppercase tracking-widest">Last Traded Price</th>
+                            <th class="px-8 py-4 text-[10px] font-black text-slate-500 uppercase tracking-widest">Net Change</th>
+                            <th class="px-8 py-4 text-[10px] font-black text-slate-500 uppercase tracking-widest text-center">5D Performance</th>
+                            <th class="px-8 py-4 text-[10px] font-black text-slate-500 uppercase tracking-widest text-right">Action</th>
+                        </tr>
+                    </thead>
+                    <tbody id="top-indices-table-body" class="divide-y divide-white/5">
+                        <!-- NSEI, BSESN, IXIC, GSPC loaded via JS -->
+                        <tr><td colspan="5" class="p-12 text-center animate-pulse"><div class="h-4 w-48 bg-white/5 rounded mx-auto"></div></td></tr>
+                    </tbody>
+                </table>
             </div>
         </div>
-    </aside>
 
-    <!-- Main Content -->
-    <main class="lg:ml-64 pt-24 px-6 pb-12">
-        <div class="max-w-[1400px] mx-auto space-y-8 dashboard-animate">
-            
-            <!-- Market Summary Header -->
-            <div class="flex flex-col md:flex-row justify-between items-end gap-4">
-                <div>
-                    <h1 class="text-3xl font-black text-white tracking-tight">Market <span class="text-blue-500">Terminal</span></h1>
-                    <p class="text-slate-400 text-sm">Professional real-time asset tracking across all sectors.</p>
+        <div class="grid grid-cols-12 gap-10">
+            <!-- Assets Explorer (Left) -->
+            <div class="col-span-12 lg:col-span-8 space-y-10">
+                <div class="glass-panel overflow-hidden">
+                    <div class="p-6 border-b border-white/5 flex justify-between items-center">
+                        <div>
+                            <h3 id="explorer-title" class="text-xl font-black text-white">Indian Market Assets</h3>
+                            <p id="explorer-desc" class="text-xs text-slate-500 mt-1">Live tracking for Indian Market across major exchanges</p>
+                        </div>
+                        <div class="flex items-center gap-2 bg-secondary/10 px-3 py-1 rounded-full">
+                            <span class="live-indicator"></span>
+                            <span class="text-[10px] font-black text-secondary uppercase tracking-widest">LIVE</span>
+                        </div>
+                    </div>
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-left">
+                            <thead>
+                                <tr class="border-b border-white/5 bg-white/2">
+                                    <th class="px-6 py-4 text-[10px] font-black text-slate-500 uppercase tracking-widest">Asset</th>
+                                    <th class="px-6 py-4 text-[10px] font-black text-slate-500 uppercase tracking-widest">LTP</th>
+                                    <th class="px-6 py-4 text-[10px] font-black text-slate-500 uppercase tracking-widest text-right">Change</th>
+                                    <th class="px-6 py-4 text-[10px] font-black text-slate-500 uppercase tracking-widest text-right">Volume</th>
+                                    <th class="px-6 py-4 text-[10px] font-black text-slate-500 uppercase tracking-widest text-right">Action</th>
+                                </tr>
+                            </thead>
+                            <tbody id="category-assets-body" class="divide-y divide-white/5">
+                                <!-- Populated via JS -->
+                            </tbody>
+                        </table>
+                    </div>
                 </div>
-                <div class="flex bg-white/5 p-1 rounded-xl border border-white/5 overflow-x-auto max-w-full">
-                    <button onclick="switchCategory('Indian Stocks')" id="cat-Indian Stocks" class="px-4 py-2 text-xs font-bold bg-blue-500 text-white rounded-lg transition-all whitespace-nowrap">Indian Market</button>
-                    <button onclick="switchCategory('US Stocks')" id="cat-US Stocks" class="px-4 py-2 text-xs font-bold text-slate-400 hover:text-slate-200 rounded-lg transition-all whitespace-nowrap">US Market</button>
-                    <button onclick="switchCategory('Forex')" id="cat-Forex" class="px-4 py-2 text-xs font-bold text-slate-400 hover:text-slate-200 rounded-lg transition-all whitespace-nowrap">Forex</button>
-                    <button onclick="switchCategory('Crypto')" id="cat-Crypto" class="px-4 py-2 text-xs font-bold text-slate-400 hover:text-slate-200 rounded-lg transition-all whitespace-nowrap">Crypto</button>
-                    <button onclick="switchCategory('Meme Coins')" id="cat-Meme Coins" class="px-4 py-2 text-xs font-bold text-slate-400 hover:text-slate-200 rounded-lg transition-all whitespace-nowrap">Meme Coins</button>
+
+                <!-- Insights Section -->
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-10">
+                    <div class="space-y-6">
+                        <h4 class="text-sm font-black uppercase tracking-widest text-slate-400 flex items-center gap-2">
+                            <span class="material-symbols-outlined text-blue-500 text-lg">trending_up</span> Top Movers
+                        </h4>
+                        <div id="movers-mini-list" class="glass-panel divide-y divide-white/5 overflow-hidden">
+                            <!-- JS -->
+                        </div>
+                    </div>
+                    <div class="space-y-6">
+                        <h4 class="text-sm font-black uppercase tracking-widest text-slate-400 flex items-center gap-2">
+                            <span class="material-symbols-outlined text-blue-500 text-lg">pie_chart</span> Sector Trends
+                        </h4>
+                        <div id="sector-mini-grid" class="grid grid-cols-2 gap-4">
+                            <!-- JS -->
+                        </div>
+                    </div>
                 </div>
             </div>
 
-            <!-- Market Indices Quick Row (Always Visible) -->
-            <div id="top-indices-row" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-                <!-- Data injected via JS (Nifty, Sensex, NASDAQ, BTC) -->
-            </div>
-
-            <!-- Bento Layout Main Content -->
-            <div class="grid grid-cols-12 gap-8">
-                
-                <!-- Left Column: Asset Explorer (8 columns) -->
-                <div class="col-span-12 lg:col-span-8 space-y-8">
-                    
-                    <!-- Market Explorer Table -->
-                    <div class="glass-panel overflow-hidden border border-white/5 shadow-2xl">
-                        <div class="p-6 border-b border-white/10 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-                            <div>
-                                <h3 id="explorer-title" class="text-xl font-bold text-white">Indian Market Assets</h3>
-                                <p id="explorer-desc" class="text-xs text-slate-500">Live price action and volume tracking</p>
-                            </div>
-                            <div class="flex gap-2">
-                                <span class="flex items-center gap-1 text-[10px] font-bold text-secondary bg-secondary/10 px-2 py-1 rounded">
-                                    <span class="w-1.5 h-1.5 rounded-full bg-secondary animate-pulse"></span> LIVE
-                                </span>
-                            </div>
-                        </div>
-                        <div class="overflow-x-auto">
-                            <table class="w-full text-left">
-                                <thead class="bg-white/5">
-                                    <tr>
-                                        <th class="px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider">Asset</th>
-                                        <th class="px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider">LTP</th>
-                                        <th class="px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider text-right">Change</th>
-                                        <th class="px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider text-right">Volume</th>
-                                        <th class="px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider text-right">Action</th>
-                                    </tr>
-                                </thead>
-                                <tbody id="category-assets-body" class="divide-y divide-white/5">
-                                    <tr><td colspan="5" class="p-12 text-center text-slate-500">
-                                        <div class="flex flex-col items-center gap-2">
-                                            <div class="w-6 h-6 border-2 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
-                                            <span class="text-xs font-bold uppercase tracking-widest">Scanning Market Assets...</span>
-                                        </div>
-                                    </td></tr>
-                                </tbody>
-                            </table>
-                        </div>
+            <!-- News Terminal (Right) -->
+            <div class="col-span-12 lg:col-span-4 space-y-8">
+                <div class="glass-panel flex flex-col h-full border border-blue-500/10">
+                    <div class="p-6 border-b border-white/5 flex justify-between items-center bg-blue-500/5">
+                        <h3 id="news-title" class="text-sm font-black text-white uppercase tracking-widest">Market Updates</h3>
+                        <span class="material-symbols-outlined text-blue-500 text-xl">rss_feed</span>
                     </div>
-
-                    <!-- Market Insights/Sectors -->
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
-                        <div class="space-y-4">
-                            <h3 class="text-heading-lg font-heading-lg flex items-center gap-2">
-                                <span class="material-symbols-outlined text-blue-500">trending_up</span> Top Movers
-                            </h3>
-                            <div id="movers-mini-list" class="glass-panel divide-y divide-white/5 overflow-hidden">
-                                <!-- Data injected via JS -->
-                            </div>
-                        </div>
-                        <div class="space-y-4">
-                            <h3 class="text-heading-lg font-heading-lg flex items-center gap-2">
-                                <span class="material-symbols-outlined text-blue-500">pie_chart</span> Sector Trends
-                            </h3>
-                            <div id="sector-mini-grid" class="grid grid-cols-2 gap-4">
-                                <!-- Data injected via JS -->
-                            </div>
-                        </div>
+                    <div id="news-container" class="flex-1 overflow-y-auto max-h-[800px] divide-y divide-white/5 no-scrollbar">
+                        <!-- JS -->
                     </div>
-
+                    <div class="p-4 bg-white/5">
+                        <button class="w-full py-3 text-[10px] font-black text-blue-500 uppercase tracking-widest border border-blue-500/20 rounded-xl hover:bg-blue-500/10 transition-all">VIEW ALL BREAKING NEWS</button>
+                    </div>
                 </div>
+            </div>
+        </div>
 
-                <!-- Right Column: Market News Terminal (4 columns) -->
-                <div class="col-span-12 lg:col-span-4 space-y-6">
-                    <div class="glass-panel flex flex-col h-full border border-white/5 min-h-[800px]">
-                        <div class="p-6 border-b border-white/10 flex justify-between items-center bg-blue-500/5">
-                            <h3 id="news-title" class="text-xl font-bold text-white">Market News</h3>
-                            <span class="material-symbols-outlined text-blue-500">rss_feed</span>
+        <!-- Global Pulse Banner -->
+        <div class="mt-16 glass-panel p-12 relative overflow-hidden border-blue-500/20 bg-gradient-to-br from-slate-900 to-blue-900/10">
+            <div class="relative z-10 grid grid-cols-1 lg:grid-cols-3 gap-12 items-center">
+                <div class="lg:col-span-2">
+                    <span class="text-blue-500 text-[10px] font-black tracking-widest uppercase mb-4 block">Global Market Pulse</span>
+                    <h2 class="text-4xl font-black text-white mb-6">Real-Time Information Across <span class="text-blue-500 text-shadow-glow">All Assets</span></h2>
+                    <p class="text-slate-400 text-lg mb-8 max-w-2xl leading-relaxed">From Indian Blue-chips to Global Forex and the latest Meme Coins, Predictor Pro provides institutional-grade data and AI-driven news sentiment for every asset in your portfolio.</p>
+                    <div class="flex flex-wrap gap-4">
+                        <div class="flex items-center gap-3 bg-white/5 px-5 py-2.5 rounded-full border border-white/10 hover:border-blue-500/30 transition-all">
+                            <span class="w-2 h-2 rounded-full bg-green-500"></span>
+                            <span class="text-xs font-bold text-slate-300 tracking-tight">50,000+ Assets</span>
                         </div>
-                        <div id="news-container" class="flex-1 overflow-y-auto max-h-[1000px] divide-y divide-white/5">
-                            <!-- Data injected via JS -->
-                            <div class="p-12 text-center text-slate-500">
-                                <div class="w-6 h-6 border-2 border-blue-500 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
-                                <p class="text-xs font-bold uppercase tracking-widest">Fetching Latest Updates...</p>
-                            </div>
+                        <div class="flex items-center gap-3 bg-white/5 px-5 py-2.5 rounded-full border border-white/10 hover:border-blue-500/30 transition-all">
+                            <span class="w-2 h-2 rounded-full bg-blue-500"></span>
+                            <span class="text-xs font-bold text-slate-300 tracking-tight">AI News Analysis</span>
                         </div>
-                        <div class="p-4 bg-white/5 border-t border-white/10">
-                            <button class="w-full py-3 text-xs font-bold text-blue-500 hover:bg-blue-500/10 rounded-lg transition-colors border border-blue-500/20">VIEW ALL BREAKING NEWS</button>
+                        <div class="flex items-center gap-3 bg-white/5 px-5 py-2.5 rounded-full border border-white/10 hover:border-blue-500/30 transition-all">
+                            <span class="w-2 h-2 rounded-full bg-purple-500"></span>
+                            <span class="text-xs font-bold text-slate-300 tracking-tight">Forex & Crypto</span>
                         </div>
                     </div>
                 </div>
-
-            </div>
-
-            <!-- Global Updates Banner -->
-            <div class="glass-panel p-12 relative overflow-hidden bg-gradient-to-br from-slate-900 via-slate-950 to-blue-900/20 border border-white/5">
-                <div class="relative z-10 grid grid-cols-1 lg:grid-cols-3 gap-12 items-center">
-                    <div class="lg:col-span-2">
-                        <span class="text-blue-500 text-xs font-black tracking-widest uppercase mb-2 block">Global Market Pulse</span>
-                        <h2 class="text-4xl font-black text-white mb-6">Real-Time Information Across <span class="text-blue-500">All Assets</span></h2>
-                        <p class="text-slate-400 text-lg mb-8 max-w-2xl">From Indian Blue-chips to Global Forex and the latest Meme Coins, Predictor Pro provides institutional-grade data and AI-driven news sentiment for every asset in your portfolio.</p>
-                        <div class="flex flex-wrap gap-4">
-                            <div class="flex items-center gap-2 bg-white/5 px-4 py-2 rounded-full border border-white/10">
-                                <span class="w-2 h-2 rounded-full bg-green-500"></span>
-                                <span class="text-xs font-bold text-slate-300">50,000+ Assets</span>
-                            </div>
-                            <div class="flex items-center gap-2 bg-white/5 px-4 py-2 rounded-full border border-white/10">
-                                <span class="w-2 h-2 rounded-full bg-blue-500"></span>
-                                <span class="text-xs font-bold text-slate-300">AI News Analysis</span>
-                            </div>
-                            <div class="flex items-center gap-2 bg-white/5 px-4 py-2 rounded-full border border-white/10">
-                                <span class="w-2 h-2 rounded-full bg-purple-500"></span>
-                                <span class="text-xs font-bold text-slate-300">Forex & Crypto</span>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="glass-panel p-8 bg-blue-500/5 border-blue-500/20 rounded-2xl text-center">
-                        <h4 class="text-sm font-black text-blue-400 uppercase tracking-widest mb-4">Market Sentiment</h4>
-                        <div class="text-5xl font-black text-white mb-2">78%</div>
-                        <div class="text-xs font-bold text-secondary mb-6">HIGHLY BULLISH</div>
-                        <button class="w-full bg-blue-500 text-white py-3 rounded-lg font-bold text-xs uppercase tracking-widest hover:bg-blue-400 transition-all">Get Detailed Insights</button>
-                    </div>
+                <div class="glass-panel p-10 bg-blue-500/5 border-blue-500/20 rounded-2xl text-center shadow-2xl">
+                    <h4 class="text-[10px] font-black text-blue-400 uppercase tracking-widest mb-6">Market Sentiment</h4>
+                    <div class="text-6xl font-black text-white mb-3 tracking-tighter">78%</div>
+                    <div class="text-[10px] font-black text-secondary mb-8 tracking-widest uppercase">HIGHLY BULLISH</div>
+                    <button class="w-full bg-blue-600 hover:bg-blue-500 text-white py-4 rounded-xl font-black text-[10px] uppercase tracking-widest transition-all shadow-xl shadow-blue-600/20">Get Detailed Insights</button>
                 </div>
             </div>
         </div>
     </main>
-<!-- Contextual FAB -->
-<button class="fixed bottom-20 md:bottom-10 right-6 md:right-10 w-14 h-14 rounded-full bg-blue-500 text-white shadow-xl shadow-blue-500/20 flex items-center justify-center transition-all duration-200 active:scale-90 z-50">
-<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">add</span>
-</button>
 
-<script src="{{ url_for('static', filename='js/markets.js') }}"></script>
-    <!-- Footer Mobile Nav -->
-    <nav class="lg:hidden fixed bottom-0 left-0 right-0 h-16 bg-surface/90 backdrop-blur-2xl border-t border-white/10 z-50 flex items-center justify-around px-4">
-        <a href="{{ url_for('index') }}"><span class="material-symbols-outlined text-slate-500">dashboard</span></a>
-        <a href="{{ url_for('markets') }}"><span class="material-symbols-outlined text-primary">monitoring</span></a>
-        <a href="{{ url_for('reports') }}"><span class="material-symbols-outlined text-slate-500">description</span></a>
-        <a href="{{ url_for('portfolio') }}"><span class="material-symbols-outlined text-slate-500">account_balance_wallet</span></a>
-    </nav>
-</body></html>
+    <script src="/static/js/markets.js"></script>
+</body>
+</html>

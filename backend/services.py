@@ -12,6 +12,7 @@ def clean_float(val):
     except:
         return 0
 from sklearn.linear_model import LinearRegression
+from sklearn.ensemble import RandomForestClassifier
 import warnings
 import json
 import os
@@ -19,7 +20,7 @@ import time
 
 warnings.filterwarnings("ignore")
 
-from .cache_manager import stock_cache, search_cache, trending_cache
+from .cache import stock_cache, search_cache, trending_cache
 import difflib
 import requests
 
@@ -95,20 +96,20 @@ def get_stock_data_service(ticker, period='2y', interval='1d'):
     # Precise Interval & Period Mapping for Institutional Grade Control
     mapping = {
         '1m': ('1m', '7d'),
+        '2m': ('2m', '60d'),
         '3m': ('2m', '60d'),
         '5m': ('5m', '60d'),
         '10m': ('5m', '60d'),
         '15m': ('15m', '60d'),
         '30m': ('30m', '60d'),
-        '1h': ('1h', '730d'),
-        '3h': ('1h', '730d'),
-        '6h': ('1h', '730d'),
-        '1M': ('1d', 'max'),
-        '3M': ('1d', 'max'),
-        '6M': ('1d', 'max'),
-        '1Y': ('1d', 'max'),
-        '3Y': ('1wk', 'max'),
-        '6Y': ('1mo', 'max')
+        '1h': ('1h', '2y'),
+        '1H': ('1h', '2y'),
+        '2H': ('1h', '2y'),
+        '3H': ('1h', '2y'),
+        '1d': ('1d', 'max'),
+        '1D': ('1d', 'max'),
+        '1wk': ('1wk', 'max'),
+        '1mo': ('1mo', 'max'),
     }
 
     if interval in mapping:
@@ -205,10 +206,71 @@ def get_stock_data_service(ticker, period='2y', interval='1d'):
         df['Upper_BB'] = df['MA20'] + (df['20SD'] * 2)
         df['Lower_BB'] = df['MA20'] - (df['20SD'] * 2)
 
-        # Fill gaps
-        critical_cols = ['Open', 'High', 'Low', 'Close']
-        df = df.dropna(subset=[col for col in critical_cols if col in df.columns], how='all')
-        df = df.ffill().bfill()
+        # VWAP Calculation (with Zero-Volume Safety)
+        df['Typical_Price'] = (df['High'] + df['Low'] + df['Close']) / 3
+        vol_sum = df['Volume'].cumsum()
+        df['VWAP'] = np.where(vol_sum > 0, (df['Volume'] * df['Typical_Price']).cumsum() / vol_sum, df['Close'])
+
+        # Fill gaps and handle edge cases
+        critical_cols = ['Open', 'High', 'Low', 'Close', 'EMA_20', 'EMA_50', 'EMA_200', 'VWAP', 'Upper_BB', 'Lower_BB', 'RSI']
+        for col in critical_cols:
+            if col in df.columns:
+                df[col] = df[col].ffill().bfill().fillna(0)
+        
+        df = df.replace([np.inf, -np.inf], 0)
+        
+        # Fibonacci Retracement Levels (from recent min/max)
+        if len(df) > 0 and not df['High'].isna().all():
+            recent_high = float(df['High'].max())
+            recent_low = float(df['Low'].min())
+            diff = recent_high - recent_low
+            fibo = {
+                "0": round(recent_high, 2),
+                "23.6": round(recent_high - 0.236 * diff, 2),
+                "38.2": round(recent_high - 0.382 * diff, 2),
+                "50.0": round(recent_high - 0.5 * diff, 2),
+                "61.8": round(recent_high - 0.618 * diff, 2),
+                "100": round(recent_low, 2)
+            }
+        else:
+            fibo = {}
+
+        # RF Signals (Random Forest)
+        df['RF_Signal'] = 0
+        if len(df) > 100:
+            try:
+                # Features for ML
+                features = ['Close', 'Volume', 'EMA_20', 'RSI', 'MACD']
+                train_data = df.copy()
+                # Target: 1 if next close is higher than current close, else 0
+                train_data['Target'] = (train_data['Close'].shift(-1) > train_data['Close']).astype(int)
+                train_data = train_data.dropna()
+                
+                X_rf = train_data[features]
+                y_rf = train_data['Target']
+                
+                rf = RandomForestClassifier(n_estimators=50, max_depth=5, random_state=42)
+                rf.fit(X_rf, y_rf)
+                
+                # Predict for the whole dataset
+                rf_preds = rf.predict(df[features].fillna(0))
+                rf_probs = rf.predict_proba(df[features].fillna(0))
+                
+                # Create signals based on confidence
+                # Buy signal if prob > 0.65, Sell if prob < 0.35
+                signals = []
+                for p in rf_probs:
+                    if p[1] > 0.65:
+                        signals.append(1)  # Buy
+                    elif p[1] < 0.35:
+                        signals.append(-1) # Sell
+                    else:
+                        signals.append(0)
+                df['RF_Signal'] = signals
+                df['RF_Confidence'] = [round(float(max(p)*100), 2) for p in rf_probs]
+            except Exception as e:
+                print("RF Model error:", e)
+                df['RF_Confidence'] = 50.0
 
 
         
@@ -265,7 +327,7 @@ def get_stock_data_service(ticker, period='2y', interval='1d'):
             except: return val
 
         # Prune columns to only what's needed by the frontend (Reduced payload size by ~60%)
-        keep_cols = ['Date', 'Open', 'High', 'Low', 'Close', 'Volume', 'EMA_20', 'EMA_50', 'EMA_200', 'MACD', 'MACD_Signal', 'MACD_Hist', 'RSI']
+        keep_cols = ['Date', 'Open', 'High', 'Low', 'Close', 'Volume', 'EMA_20', 'EMA_50', 'EMA_200', 'MACD', 'MACD_Signal', 'MACD_Hist', 'RSI', 'Upper_BB', 'Lower_BB', 'VWAP', 'RF_Signal', 'RF_Confidence']
         df = df[[c for c in keep_cols if c in df.columns]]
         
         records = df.to_dict(orient='records')
@@ -389,7 +451,8 @@ def get_stock_data_service(ticker, period='2y', interval='1d'):
             "trend": trend,
             "recommendation": recommendation,
             "confidence": confidence,
-            "targetPrice": pred_data[-1]["Predicted_Close"] if pred_data else None
+            "targetPrice": pred_data[-1]["Predicted_Close"] if pred_data else None,
+            "fibonacci": fibo
         })
 
         result = {
@@ -513,40 +576,34 @@ def get_market_summary_service():
             "USD/INR": "USDINR=X"
         }
         
-        tickers = list(symbols_dict.values())
-        try:
-            data = yf.download(tickers, period="2d", group_by='ticker', progress=False)
-        except:
-            data = pd.DataFrame()
-            
         summary_data = []
         for name, symbol in symbols_dict.items():
+            price, change, sparkline = 0, 0, []
             try:
-                price, change = 0, 0
-                if symbol in data.columns.levels[0]:
-                    ticker_data = data[symbol]
-                    if not ticker_data.empty and len(ticker_data) >= 2:
-                        price = ticker_data['Close'].iloc[-1]
-                        prev_price = ticker_data['Close'].iloc[-2]
+                # Fetch slightly more data for a smoother sparkline
+                ticker_data = yf.Ticker(symbol).history(period="5d", interval="1h")
+                if not ticker_data.empty:
+                    prices = ticker_data['Close'].dropna().tolist()
+                    if len(prices) >= 2:
+                        price = float(prices[-1])
+                        prev_price = float(prices[0]) # Start of the 5d period
                         change = ((price - prev_price) / prev_price) * 100
-                    elif not ticker_data.empty:
-                        price = ticker_data['Close'].iloc[-1]
+                        # Downsample sparkline to ~20 points for performance
+                        step = max(1, len(prices) // 20)
+                        sparkline = [round(float(p), 2) for p in prices[::step]]
+                    elif len(prices) > 0:
+                        price = float(prices[-1])
+            except Exception as e:
+                print(f"Error fetching {symbol}: {e}")
                 
-                summary_data.append({
-                    "name": name,
-                    "symbol": symbol,
-                    "price": round(clean_float(price), 2),
-                    "changePercent": round(clean_float(change), 2),
-                    "currency": "INR" if symbol.endswith(".NS") or symbol.endswith(".BO") or "USDINR" in symbol else "USD"
-                })
-            except:
-                summary_data.append({
-                    "name": name,
-                    "symbol": symbol,
-                    "price": 0,
-                    "changePercent": 0,
-                    "currency": "USD"
-                })
+            summary_data.append({
+                "name": name,
+                "symbol": symbol,
+                "price": round(clean_float(price), 2),
+                "changePercent": round(clean_float(change), 2),
+                "sparkline": sparkline,
+                "currency": "INR" if symbol.endswith(".NS") or symbol.endswith(".BO") or "USDINR" in symbol else "USD"
+            })
         return {"summary": summary_data}, None
     except Exception as e:
         return {"summary": []}, str(e)
@@ -554,7 +611,7 @@ def get_market_summary_service():
 def get_top_movers_service():
     try:
         tickers = []
-        for cat in ["Indian Stocks", "US Stocks"]:
+        for cat in ["Indian Market", "US Market"]:
             if cat in POPULAR_STOCKS:
                 tickers.extend([s["ticker"] for s in POPULAR_STOCKS[cat]])
         
@@ -643,38 +700,34 @@ def get_market_category_service(category):
         
         # Batch download for speed and reliability
         try:
-            data = yf.download(tickers, period="2d", group_by='ticker', progress=False)
+            # period="2d" ensures we have enough data for change calculation
+            data = yf.download(tickers, period="5d", interval="1d", group_by='ticker', progress=False)
         except:
             data = pd.DataFrame()
             
         results = []
         for asset in assets:
             ticker = asset["ticker"]
+            price, change, volume = 0, 0, 0
             try:
-                price, change, volume = 0, 0, 0
-                # Handle single vs multiple tickers in download result
+                # Robustly extract data from yfinance result
                 if len(tickers) > 1:
                     if ticker in data.columns.levels[0]:
-                        ticker_data = data[ticker]
-                        if not ticker_data.empty and len(ticker_data) >= 2:
-                            price = ticker_data['Close'].iloc[-1]
-                            prev_price = ticker_data['Close'].iloc[-2]
-                            change = ((price - prev_price) / prev_price) * 100
-                            volume = ticker_data['Volume'].iloc[-1]
-                        elif not ticker_data.empty:
-                            price = ticker_data['Close'].iloc[-1]
-                            volume = ticker_data['Volume'].iloc[-1]
+                        ticker_df = data[ticker].dropna(subset=['Close'])
+                        if not ticker_df.empty:
+                            price = ticker_df['Close'].iloc[-1]
+                            if len(ticker_df) >= 2:
+                                prev_price = ticker_df['Close'].iloc[-2]
+                                change = ((price - prev_price) / prev_price) * 100
+                            volume = ticker_df['Volume'].iloc[-1]
                 else:
-                    if not data.empty:
-                        ticker_data = data
-                        if len(ticker_data) >= 2:
-                            price = ticker_data['Close'].iloc[-1]
-                            prev_price = ticker_data['Close'].iloc[-2]
+                    ticker_df = data.dropna(subset=['Close'])
+                    if not ticker_df.empty:
+                        price = ticker_df['Close'].iloc[-1]
+                        if len(ticker_df) >= 2:
+                            prev_price = ticker_df['Close'].iloc[-2]
                             change = ((price - prev_price) / prev_price) * 100
-                            volume = ticker_data['Volume'].iloc[-1]
-                        else:
-                            price = ticker_data['Close'].iloc[-1]
-                            volume = ticker_data['Volume'].iloc[-1]
+                        volume = ticker_df['Volume'].iloc[-1]
 
                 results.append({
                     "ticker": ticker,
@@ -683,13 +736,12 @@ def get_market_category_service(category):
                     "change": round(clean_float(change), 2),
                     "volume": int(clean_float(volume))
                 })
-            except:
+            except Exception as e:
+                print(f"Error processing {ticker}: {e}")
                 results.append({
                     "ticker": ticker,
                     "name": asset["name"],
-                    "price": 0,
-                    "change": 0,
-                    "volume": 0
+                    "price": 0, "change": 0, "volume": 0
                 })
                 
         return {"assets": results}, None
@@ -708,7 +760,7 @@ def get_general_news_service(category=None):
             sources = ["BTC-USD", "ETH-USD", "SOL-USD", "DOGE-USD", "COIN"] + sources
         elif category == "Forex":
             sources = ["USDINR=X", "EURUSD=X", "GBPUSD=X"] + sources
-        elif category == "Indian Stocks":
+        elif category == "Indian Market":
             sources = ["RELIANCE.NS", "TCS.NS", "HDFCBANK.NS", "INFY.NS", "^NSEI"]
 
         all_articles = []
