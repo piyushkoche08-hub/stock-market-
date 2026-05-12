@@ -152,6 +152,13 @@ function updateChartData(data, predictions) {
     const lowerBBData = [];
     const markers = [];
 
+    // Thin RF signals to avoid overlapping BUY/SELL labels:
+    // - keep only the first signal in a local window
+    // - collapse repeated same-direction signals
+    let lastSignalTime = 0;
+    let lastSignalDir = 0;
+    const minSignalSpacingSeconds = 60 * 60 * 8; // ~8h spacing for dense intraday; harmless for daily too
+
     data.forEach(item => {
         // Lightweight charts expects timestamp in seconds
         const time = new Date(item.Date).getTime() / 1000;
@@ -164,10 +171,19 @@ function updateChartData(data, predictions) {
         if (item.Upper_BB) upperBBData.push({ time, value: item.Upper_BB });
         if (item.Lower_BB) lowerBBData.push({ time, value: item.Lower_BB });
         
-        if (item.RF_Signal === 1) {
-            markers.push({ time, position: 'belowBar', color: '#10b981', shape: 'arrowUp', text: `BUY (${item.RF_Confidence || ''}%)` });
-        } else if (item.RF_Signal === -1) {
-            markers.push({ time, position: 'aboveBar', color: '#ef4444', shape: 'arrowDown', text: `SELL (${item.RF_Confidence || ''}%)` });
+        if (showState.ai && item.RF_Signal && item.RF_Signal !== 0) {
+            const dir = item.RF_Signal;
+            const isRepeatDir = dir === lastSignalDir;
+            const isTooClose = Math.abs(time - lastSignalTime) < minSignalSpacingSeconds;
+            if (!(isRepeatDir && isTooClose)) {
+                if (dir === 1) {
+                    markers.push({ time, position: 'belowBar', color: '#10b981', shape: 'arrowUp', text: `BUY` });
+                } else if (dir === -1) {
+                    markers.push({ time, position: 'aboveBar', color: '#ef4444', shape: 'arrowDown', text: `SELL` });
+                }
+                lastSignalTime = time;
+                lastSignalDir = dir;
+            }
         }
 
         volumeData.push({

@@ -188,6 +188,16 @@
         <span class="ap-brand-name">AlphaPulse <b>Terminal</b></span>
     </a>
 
+    <!-- Universal Global Search -->
+    <div class="ap-search">
+        <div class="ap-search-input">
+            <span class="material-symbols-outlined">search</span>
+            <input id="searchInput" type="text" placeholder="Search global markets (NSE, NASDAQ, Forex, Crypto)..." autocomplete="off" />
+            <span class="ap-kbd-hint">Ctrl K</span>
+        </div>
+        <div id="searchResults" class="ap-search-dropdown hidden" role="listbox" aria-label="Search results"></div>
+    </div>
+
     <nav class="ap-nav-desktop">
         <a href="/"          class="ap-nav-link {% if active_page == 'index'     %}is-active{% endif %}">Dashboard</a>
         <a href="/markets"   class="ap-nav-link {% if active_page == 'markets'   %}is-active{% endif %}">Markets</a>
@@ -199,6 +209,9 @@
         <button class="ap-notif-btn" aria-label="Notifications">
             <span class="material-symbols-outlined">notifications</span>
             <span class="ap-notif-dot"></span>
+        </button>
+        <button class="ap-notif-btn ap-search-open" aria-label="Open search">
+            <span class="material-symbols-outlined">manage_search</span>
         </button>
         <button class="ap-trade-btn">Trade</button>
     </div>
