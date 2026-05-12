@@ -26,6 +26,7 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet" crossorigin="anonymous">
     <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" />
     <script src="https://cdn.jsdelivr.net/npm/chart.js@3.9.1/dist/chart.min.js" crossorigin="anonymous"></script>
+    <link rel="stylesheet" href="/static/css/style.css?v=3">
     <style>
         :root {
             --primary: #3b82f6;
@@ -57,6 +58,7 @@
         .flex-col { flex-direction: column; }
         .items-center { align-items: center; }
         .justify-between { justify-content: space-between; }
+        .gap-1 { gap: 0.25rem; }
         .gap-2 { gap: 0.5rem; }
         .gap-4 { gap: 1rem; }
         .gap-6 { gap: 1.5rem; }
@@ -266,11 +268,359 @@
             padding-left: 2.5rem;
         }
 
+        /* Ensure consistent vertical gap between tabs and heading (not Tailwind-dependent) */
+        .markets-tabs-row {
+            margin-top: 0.9rem;
+            margin-bottom: 2.25rem;
+            padding-bottom: 0.5rem;
+        }
+
+        /* Spacing between major sections (ensure no “stuck together” look) */
+        .global-overview-panel {
+            margin-bottom: 2.5rem !important;
+        }
+        .assets-panel {
+            margin-top: 0.75rem;
+        }
+
+        /* Icon-in-box styling (centered) */
+        .icon-box {
+            width: 32px;
+            height: 32px;
+            border-radius: 10px;
+            background: rgba(30, 41, 59, 0.85);
+            border: 1px solid rgba(255, 255, 255, 0.10);
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            flex: 0 0 auto;
+            line-height: 1;
+        }
+        .icon-box .material-symbols-outlined {
+            font-size: 18px;
+            line-height: 1;
+        }
+
+        /* Make the assets header feel “open” and not cramped */
+        .assets-card-header {
+            padding: 1.6rem 1.5rem !important;
+        }
+        .assets-card-header h3 {
+            margin-bottom: 0.25rem;
+            line-height: 1.15;
+        }
+        .assets-card-header p {
+            margin-top: 0.35rem !important;
+        }
+
+        /* Insights: Top Movers & Sector Trends */
+        .insights-heading {
+            margin-top: 0.35rem;
+            margin-bottom: 1.5rem;
+            padding-top: 0.25rem;
+            padding-bottom: 1.125rem;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+            font-weight: 900 !important;
+            font-size: 0.8125rem;
+            color: #cbd5e1 !important;
+            letter-spacing: 0.14em;
+        }
+        .movers-mini-stack {
+            display: flex;
+            flex-direction: column;
+            gap: 0.75rem;
+        }
+        .movers-mini-card {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 1rem;
+            border-radius: 0.75rem;
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            background: rgba(255, 255, 255, 0.03);
+            padding: 1rem 1.125rem;
+            transition: background 0.2s ease, border-color 0.2s ease;
+            cursor: pointer;
+        }
+        .movers-mini-card:hover {
+            background: rgba(255, 255, 255, 0.06);
+            border-color: rgba(59, 130, 246, 0.25);
+        }
+        /* Prices/changes are injected via JS — do not rely on Tailwind scanning dynamic class names */
+        .movers-mini-left {
+            display: flex;
+            flex-direction: column;
+            gap: 0.25rem;
+            min-width: 0;
+            flex: 1 1 auto;
+        }
+        .movers-mini-symbol {
+            font-size: 0.75rem;
+            font-weight: 700;
+            color: #f8fafc;
+            letter-spacing: -0.02em;
+        }
+        .movers-mini-name {
+            font-size: 10px;
+            color: #64748b;
+            line-height: 1.35;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+        .movers-mini-right {
+            flex: 0 0 auto;
+            text-align: right;
+            min-width: 6.25rem;
+        }
+        .movers-mini-price {
+            font-size: 0.8125rem;
+            font-weight: 700;
+            color: #f1f5f9;
+            white-space: nowrap;
+        }
+        .movers-mini-pct {
+            font-size: 10px;
+            font-weight: 900;
+            margin-top: 0.35rem;
+            white-space: nowrap;
+        }
+        .movers-mini-pct.up {
+            color: var(--secondary);
+        }
+        .movers-mini-pct.down {
+            color: var(--error);
+        }
+        .sector-trends-panel {
+            border-radius: 0.75rem;
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            background: rgba(23, 31, 51, 0.45);
+            max-height: min(520px, 70vh);
+            overflow-y: auto;
+            overflow-x: hidden;
+        }
+        .sector-trends-panel table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        .sector-trends-panel thead th {
+            position: sticky;
+            top: 0;
+            z-index: 1;
+            background: rgba(11, 19, 38, 0.96);
+            backdrop-filter: blur(8px);
+            padding: 0.75rem 1rem;
+            font-size: 10px;
+            font-weight: 900;
+            letter-spacing: 0.12em;
+            text-transform: uppercase;
+            color: #64748b;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+        }
+        .sector-trends-panel tbody td {
+            padding: 0.875rem 1rem;
+            vertical-align: middle;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+        }
+        .sector-trends-panel tbody tr:last-child td {
+            border-bottom: none;
+        }
+        .sector-name-cell {
+            min-width: 0;
+            font-size: 0.8125rem;
+            font-weight: 700;
+            color: #f1f5f9;
+            line-height: 1.35;
+            word-break: break-word;
+        }
+
+        /* Global Market Pulse — structured layout & spacing (scoped, no Tailwind dependency) */
+        .global-pulse-banner {
+            margin-top: 4rem;
+            padding: 2.75rem 2.25rem;
+            border-radius: 1rem;
+            border: 1px solid rgba(59, 130, 246, 0.18);
+            background: linear-gradient(145deg, rgba(15, 23, 42, 0.92) 0%, rgba(30, 41, 59, 0.85) 45%, rgba(30, 58, 138, 0.14) 100%);
+            position: relative;
+            overflow: hidden;
+        }
+        .global-pulse-banner::before {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background: radial-gradient(ellipse 80% 60% at 90% 20%, rgba(59, 130, 246, 0.08), transparent 55%);
+            pointer-events: none;
+        }
+        .global-pulse-inner {
+            position: relative;
+            z-index: 1;
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 2.5rem;
+            align-items: stretch;
+        }
+        @media (min-width: 1024px) {
+            .global-pulse-inner {
+                grid-template-columns: minmax(0, 1.65fr) minmax(260px, 1fr);
+                gap: 3rem;
+                align-items: center;
+            }
+        }
+        .global-pulse-copy-col {
+            display: flex;
+            flex-direction: column;
+            gap: 0;
+            min-width: 0;
+        }
+        .global-pulse-eyebrow {
+            display: inline-block;
+            font-size: 10px;
+            font-weight: 900;
+            letter-spacing: 0.16em;
+            text-transform: uppercase;
+            color: #60a5fa;
+            margin: 0 0 1rem 0;
+            padding-top: 0.15rem;
+        }
+        .global-pulse-title {
+            font-size: clamp(1.45rem, 3.5vw, 2.15rem);
+            font-weight: 900;
+            color: #f8fafc;
+            line-height: 1.18;
+            margin: 0 0 1.35rem 0;
+            letter-spacing: -0.03em;
+        }
+        .global-pulse-title .accent {
+            color: #3b82f6;
+        }
+        .global-pulse-desc {
+            font-size: 1rem;
+            color: #94a3b8;
+            line-height: 1.7;
+            margin: 0 0 2rem 0;
+            max-width: 40rem;
+        }
+        .global-pulse-tags {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.85rem;
+            padding-top: 0.25rem;
+        }
+        .global-pulse-tag {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.65rem;
+            padding: 0.65rem 1.15rem;
+            border-radius: 9999px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            background: rgba(255, 255, 255, 0.04);
+            transition: border-color 0.2s ease, background 0.2s ease;
+        }
+        .global-pulse-tag:hover {
+            border-color: rgba(59, 130, 246, 0.35);
+            background: rgba(255, 255, 255, 0.06);
+        }
+        .global-pulse-tag-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            flex-shrink: 0;
+        }
+        .global-pulse-tag-dot.green { background: #22c55e; }
+        .global-pulse-tag-dot.blue { background: #3b82f6; }
+        .global-pulse-tag-dot.purple { background: #a855f7; }
+        .global-pulse-tag span:last-child {
+            font-size: 0.75rem;
+            font-weight: 700;
+            color: #cbd5e1;
+            letter-spacing: 0.02em;
+        }
+        .global-pulse-sentiment {
+            border-radius: 1rem;
+            border: 1px solid rgba(59, 130, 246, 0.22);
+            background: rgba(23, 31, 51, 0.72);
+            backdrop-filter: blur(10px);
+            padding: 2rem 1.85rem;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            width: 100%;
+            max-width: 22rem;
+            margin-left: auto;
+            margin-right: auto;
+            box-shadow: 0 20px 50px rgba(0, 0, 0, 0.25);
+        }
+        @media (min-width: 1024px) {
+            .global-pulse-sentiment {
+                margin-left: auto;
+                margin-right: 0;
+                max-width: none;
+                width: 100%;
+                min-height: 280px;
+            }
+        }
+        .global-pulse-sentiment-label {
+            font-size: 10px;
+            font-weight: 900;
+            letter-spacing: 0.14em;
+            text-transform: uppercase;
+            color: #60a5fa;
+            margin: 0 0 1.25rem 0;
+        }
+        .global-pulse-sentiment-value {
+            font-size: clamp(3rem, 8vw, 3.75rem);
+            font-weight: 900;
+            color: #f8fafc;
+            line-height: 1;
+            margin: 0 0 1rem 0;
+            letter-spacing: -0.04em;
+        }
+        .global-pulse-sentiment-badge {
+            display: inline-block;
+            font-size: 10px;
+            font-weight: 900;
+            letter-spacing: 0.12em;
+            text-transform: uppercase;
+            color: var(--secondary);
+            background: rgba(0, 208, 156, 0.12);
+            border: 1px solid rgba(0, 208, 156, 0.25);
+            padding: 0.45rem 0.85rem;
+            border-radius: 9999px;
+            margin-bottom: 1.75rem;
+        }
+        .global-pulse-sentiment-btn {
+            width: 100%;
+            border: none;
+            cursor: pointer;
+            border-radius: 0.75rem;
+            padding: 0.95rem 1.25rem;
+            font-size: 10px;
+            font-weight: 900;
+            letter-spacing: 0.12em;
+            text-transform: uppercase;
+            color: #fff;
+            background: #2563eb;
+            box-shadow: 0 12px 28px rgba(37, 99, 235, 0.35);
+            transition: background 0.2s ease, transform 0.15s ease;
+        }
+        .global-pulse-sentiment-btn:hover {
+            background: #3b82f6;
+        }
+        .global-pulse-sentiment-btn:active {
+            transform: scale(0.98);
+        }
+
         @media (max-width: 768px) {
             .markets-page-main {
                 padding-top: 5.75rem;
                 padding-right: 1rem;
                 padding-left: 1rem;
+            }
+            .global-pulse-banner {
+                padding: 1.75rem 1.25rem;
+                margin-top: 3rem;
             }
         }
     </style>
@@ -282,12 +632,12 @@
 
     <main class="markets-page-main max-w-[1600px] mx-auto">
         <!-- Sub Header -->
-        <div class="mb-8">
+        <div class="markets-subheader mb-8">
             <p style="color: var(--text-muted); font-size: 0.875rem; font-weight: 500; margin: 0;">Professional real-time asset tracking across all sectors.</p>
         </div>
 
         <!-- Market Quick Tabs -->
-        <div class="flex gap-2 mb-10 overflow-x-auto no-scrollbar pb-2">
+        <div class="markets-tabs-row flex gap-2 mb-10 overflow-x-auto no-scrollbar pb-2">
             <button onclick="switchCategory('Indian Market')" id="cat-Indian Market" class="tab-btn tab-active">Indian Market</button>
             <button onclick="switchCategory('US Market')" id="cat-US Market" class="tab-btn">US Market</button>
             <button onclick="switchCategory('Forex')" id="cat-Forex" class="tab-btn">Forex</button>
@@ -296,10 +646,12 @@
         </div>
 
         <!-- Professional Global Indices Table Section -->
-        <div class="glass-panel overflow-hidden mb-12" style="border: 1px solid rgba(59, 130, 246, 0.1);">
+        <div class="glass-panel global-overview-panel overflow-hidden mb-12" style="border: 1px solid rgba(59, 130, 246, 0.1);">
             <div class="p-6 border-b border-white/5 bg-slate-900/20 flex justify-between items-center" style="padding: 1.5rem; border-bottom: 1px solid var(--border);">
                 <h3 class="card-title">
-                    <span class="material-symbols-outlined text-blue-500 text-lg">monitoring</span>
+                    <span class="icon-box">
+                        <span class="material-symbols-outlined text-blue-500">monitoring</span>
+                    </span>
                     Global Markets Overview
                 </h3>
                 <div class="flex items-center gap-2">
@@ -329,8 +681,8 @@
         <div class="grid grid-cols-12 gap-10">
             <!-- Assets Explorer (Left) -->
             <div class="col-span-12 lg:col-span-8 space-y-10">
-                <div class="glass-panel overflow-hidden">
-                    <div class="p-6 border-b border-white/5 flex justify-between items-center">
+                <div class="glass-panel assets-panel overflow-hidden">
+                    <div class="p-6 assets-card-header border-b border-white/5 flex justify-between items-center">
                         <div>
                             <h3 id="explorer-title" class="text-xl font-black text-white">Indian Market Assets</h3>
                             <p id="explorer-desc" class="text-xs text-slate-500 mt-1">Live tracking for Indian Market across major exchanges</p>
@@ -365,20 +717,20 @@
                 </div>
 
                 <!-- Insights Section -->
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-10">
-                    <div class="space-y-6">
-                        <h4 class="text-sm font-black uppercase tracking-widest text-slate-400 flex items-center gap-2">
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-12">
+                    <div class="space-y-8">
+                        <h4 class="insights-heading uppercase flex items-center gap-2">
                             <span class="material-symbols-outlined text-blue-500 text-lg">trending_up</span> Top Movers
                         </h4>
-                        <div id="movers-mini-list" class="glass-panel divide-y divide-white/5 overflow-hidden">
+                        <div id="movers-mini-list" class="movers-mini-stack">
                             <!-- JS -->
                         </div>
                     </div>
-                    <div class="space-y-6">
-                        <h4 class="text-sm font-black uppercase tracking-widest text-slate-400 flex items-center gap-2">
+                    <div class="space-y-8">
+                        <h4 class="insights-heading uppercase flex items-center gap-2">
                             <span class="material-symbols-outlined text-blue-500 text-lg">pie_chart</span> Sector Trends
                         </h4>
-                        <div id="sector-mini-grid" class="grid grid-cols-2 gap-4">
+                        <div id="sector-mini-grid" class="sector-trends-panel">
                             <!-- JS -->
                         </div>
                     </div>
@@ -402,36 +754,40 @@
             </div>
         </div>
 
-        <!-- Global Pulse Banner -->
-        <div class="mt-16 glass-panel p-12 relative overflow-hidden border-blue-500/20 bg-gradient-to-br from-slate-900 to-blue-900/10">
-            <div class="relative z-10 grid grid-cols-1 lg:grid-cols-3 gap-12 items-center">
-                <div class="lg:col-span-2">
-                    <span class="text-blue-500 text-[10px] font-black tracking-widest uppercase mb-4 block">Global Market Pulse</span>
-                    <h2 class="text-4xl font-black text-white mb-6">Real-Time Information Across <span class="text-blue-500 text-shadow-glow">All Assets</span></h2>
-                    <p class="text-slate-400 text-lg mb-8 max-w-2xl leading-relaxed">From Indian Blue-chips to Global Forex and the latest Meme Coins, Predictor Pro provides institutional-grade data and AI-driven news sentiment for every asset in your portfolio.</p>
-                    <div class="flex flex-wrap gap-4">
-                        <div class="flex items-center gap-3 bg-white/5 px-5 py-2.5 rounded-full border border-white/10 hover:border-blue-500/30 transition-all">
-                            <span class="w-2 h-2 rounded-full bg-green-500"></span>
-                            <span class="text-xs font-bold text-slate-300 tracking-tight">50,000+ Assets</span>
+        <!-- Global Market Pulse -->
+        <section class="global-pulse-banner" aria-labelledby="global-pulse-heading">
+            <div class="global-pulse-inner">
+                <div class="global-pulse-copy-col">
+                    <p class="global-pulse-eyebrow">Global Market Pulse</p>
+                    <h2 id="global-pulse-heading" class="global-pulse-title">
+                        Real-Time Information Across <span class="accent">All Assets</span>
+                    </h2>
+                    <p class="global-pulse-desc">
+                        From Indian blue-chips to global forex and the latest meme coins, AlphaPulse Terminal delivers institutional-grade data and AI-driven news sentiment for every asset in your portfolio.
+                    </p>
+                    <div class="global-pulse-tags">
+                        <div class="global-pulse-tag">
+                            <span class="global-pulse-tag-dot green" aria-hidden="true"></span>
+                            <span>50,000+ Assets</span>
                         </div>
-                        <div class="flex items-center gap-3 bg-white/5 px-5 py-2.5 rounded-full border border-white/10 hover:border-blue-500/30 transition-all">
-                            <span class="w-2 h-2 rounded-full bg-blue-500"></span>
-                            <span class="text-xs font-bold text-slate-300 tracking-tight">AI News Analysis</span>
+                        <div class="global-pulse-tag">
+                            <span class="global-pulse-tag-dot blue" aria-hidden="true"></span>
+                            <span>AI News Analysis</span>
                         </div>
-                        <div class="flex items-center gap-3 bg-white/5 px-5 py-2.5 rounded-full border border-white/10 hover:border-blue-500/30 transition-all">
-                            <span class="w-2 h-2 rounded-full bg-purple-500"></span>
-                            <span class="text-xs font-bold text-slate-300 tracking-tight">Forex & Crypto</span>
+                        <div class="global-pulse-tag">
+                            <span class="global-pulse-tag-dot purple" aria-hidden="true"></span>
+                            <span>Forex &amp; Crypto</span>
                         </div>
                     </div>
                 </div>
-                <div class="glass-panel p-10 bg-blue-500/5 border-blue-500/20 rounded-2xl text-center shadow-2xl">
-                    <h4 class="text-[10px] font-black text-blue-400 uppercase tracking-widest mb-6">Market Sentiment</h4>
-                    <div class="text-6xl font-black text-white mb-3 tracking-tighter">78%</div>
-                    <div class="text-[10px] font-black text-secondary mb-8 tracking-widest uppercase">HIGHLY BULLISH</div>
-                    <button class="w-full bg-blue-600 hover:bg-blue-500 text-white py-4 rounded-xl font-black text-[10px] uppercase tracking-widest transition-all shadow-xl shadow-blue-600/20">Get Detailed Insights</button>
-                </div>
+                <aside class="global-pulse-sentiment" aria-label="Market sentiment snapshot">
+                    <p class="global-pulse-sentiment-label">Market Sentiment</p>
+                    <p class="global-pulse-sentiment-value">78%</p>
+                    <p class="global-pulse-sentiment-badge">Highly bullish</p>
+                    <button type="button" class="global-pulse-sentiment-btn">Get detailed insights</button>
+                </aside>
             </div>
-        </div>
+        </section>
     </main>
 
     <script src="/static/js/markets.js"></script>

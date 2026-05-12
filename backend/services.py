@@ -564,6 +564,28 @@ def get_stock_news_service(ticker):
     except Exception:
         return get_general_news_service()
 
+def quote_currency_for_summary(symbol: str) -> str:
+    """Quote/trading currency for Yahoo Finance symbols in the global overview."""
+    s = (symbol or "").upper()
+    # Indian equity indices (caret tickers are not .NS / .BO)
+    if s in ("^NSEI", "^BSESN"):
+        return "INR"
+    if s.endswith(".NS") or s.endswith(".BO"):
+        return "INR"
+    # USD/INR spot — quote shown in INR terms in the UI
+    if "USDINR" in s:
+        return "INR"
+    # Major US indices
+    if s in ("^IXIC", "^GSPC", "^DJI"):
+        return "USD"
+    # Other common indices (Yahoo quotes these in local CCY)
+    if s == "^FTSE":
+        return "GBP"
+    if s == "^N225":
+        return "JPY"
+    return "USD"
+
+
 def get_market_summary_service():
     try:
         symbols_dict = {
@@ -603,7 +625,7 @@ def get_market_summary_service():
                 "price": round(clean_float(price), 2),
                 "changePercent": round(clean_float(change), 2),
                 "sparkline": sparkline,
-                "currency": "INR" if symbol.endswith(".NS") or symbol.endswith(".BO") or "USDINR" in symbol else "USD"
+                "currency": quote_currency_for_summary(symbol),
             })
         return {"summary": summary_data}, None
     except Exception as e:
@@ -887,3 +909,181 @@ def search_stocks_service(query):
     search_cache.set(cache_key, final_results)
     
     return final_results, None
+
+
+def _infer_market_type(symbol: str, quote_type: str | None = None, exchange: str | None = None):
+    s = (symbol or "").upper()
+    qt = (quote_type or "").upper()
+    ex = (exchange or "").upper()
+    if qt in ("CRYPTOCURRENCY", "CRYPTO") or s.endswith("-USD") or "CRYPTO" in ex:
+        return "CRYPTO"
+    if qt in ("CURRENCY", "FOREX") or s.endswith("=X") or "FX" in ex or "FOREX" in ex:
+        return "FOREX"
+    if s.startswith("^"):
+        return "INDEX"
+    if s.endswith(".NS") or ex in ("NSE", "NSI"):
+        return "INDIA"
+    if s.endswith(".BO") or ex in ("BSE",):
+        return "INDIA"
+    return "US" if ex in ("NYQ", "NMS", "NAS", "NYSE", "NASDAQ") else "GLOBAL"
+
+
+def _get_cached_quote(symbol: str):
+    symbol = (symbol or "").upper()
+    if not symbol:
+        return None
+    cache_key = f"quote_{symbol}"
+    cached = search_cache.get(cache_key, ttl=45)
+    # If we cached an empty quote (price=0), treat as a miss so we can retry quickly.
+    try:
+        if cached and clean_float(cached.get("price", 0)) > 0:
+            return cached
+    except Exception:
+        pass
+    return None
+
+
+def _set_cached_quote(symbol: str, quote: dict):
+    symbol = (symbol or "").upper()
+    if not symbol:
+        return
+    cache_key = f"quote_{symbol}"
+    search_cache.set(cache_key, quote)
+
+
+def _hydrate_quotes_fast(symbols: list[str]):
+    """
+    Best-effort fast quote hydration.
+    Uses yfinance fast_info per symbol (cached) to avoid heavy calls.
+    """
+    out = {}
+    for sym in (symbols or [])[:8]:
+        s = (sym or "").upper()
+        if not s:
+            continue
+        cached = _get_cached_quote(s)
+        if cached:
+            out[s] = cached
+            continue
+        try:
+            t = yf.Ticker(s)
+            f = getattr(t, "fast_info", {}) or {}
+            last_price = clean_float(f.get("last_price", 0))
+            prev = clean_float(f.get("previous_close", 0)) or last_price or 0
+            chg_pct = 0
+            if prev:
+                chg_pct = ((last_price - prev) / prev) * 100
+            # Fallback if fast_info is empty/blocked
+            if last_price == 0:
+                try:
+                    h = t.history(period="2d", interval="1d")
+                    if not h.empty and len(h) >= 1:
+                        last_price = clean_float(h["Close"].iloc[-1])
+                        if len(h) >= 2:
+                            prev = clean_float(h["Close"].iloc[-2]) or last_price
+                        else:
+                            prev = prev or last_price
+                        if prev:
+                            chg_pct = ((last_price - prev) / prev) * 100
+                except Exception:
+                    pass
+            q = {
+                "price": round(clean_float(last_price), 6),
+                "changePercent": round(clean_float(chg_pct), 2),
+                "currency": f.get("currency", "USD")
+            }
+            _set_cached_quote(s, q)
+            out[s] = q
+        except Exception:
+            continue
+    return out
+
+
+def search_stocks_v2_service(query: str, limit: int = 20, offset: int = 0, with_quotes: bool = False):
+    """
+    Institutional-grade global search.
+    - Uses local POPULAR universe + Yahoo finance search.
+    - Supports pagination.
+    - Optionally hydrates top results with cached price previews (best-effort).
+    """
+    q = (query or "").strip()
+    q_up = q.upper()
+    limit = max(1, min(int(limit or 20), 50))
+    offset = max(0, int(offset or 0))
+
+    if not q:
+        trending, _ = get_trending_stocks_service()
+        return {
+            "results": [],
+            "trending": trending,
+            "meta": {"limit": limit, "offset": offset, "with_quotes": with_quotes}
+        }, None
+
+    cache_key = f"searchv2_{q_up}_{limit}_{offset}_{1 if with_quotes else 0}"
+    cached = search_cache.get(cache_key)
+    if cached:
+        return cached, None
+
+    results = []
+    seen = set()
+
+    # 1) Local fuzzy results (high confidence)
+    local_data, _ = search_stocks_service(q)
+    for item in (local_data or {}).get("results", []):
+        sym = (item.get("ticker") or "").upper()
+        if not sym or sym in seen:
+            continue
+        seen.add(sym)
+        results.append({
+            "symbol": sym,
+            "name": item.get("name") or sym,
+            "exchange": item.get("exchange") or "GLOBAL",
+            "quoteType": item.get("type") or "EQUITY",
+            "marketType": _infer_market_type(sym, item.get("type"), item.get("exchange")),
+            "score": item.get("score", 0.6),
+            "logoUrl": None,
+            "sector": None,
+        })
+
+    # 2) Yahoo search (broad coverage)
+    try:
+        url = f"https://query2.finance.yahoo.com/v1/finance/search?q={q_up}&quotesCount=20&newsCount=0"
+        headers = {"User-Agent": "Mozilla/5.0"}
+        resp = requests.get(url, headers=headers, timeout=3)
+        if resp.status_code == 200:
+            payload = resp.json() or {}
+            for quote in payload.get("quotes", []):
+                sym = (quote.get("symbol") or "").upper()
+                if not sym or sym in seen:
+                    continue
+                seen.add(sym)
+                exchange = quote.get("exchange", quote.get("fullExchangeName", "Global"))
+                qt = quote.get("quoteType", quote.get("typeDisp", "Equity"))
+                results.append({
+                    "symbol": sym,
+                    "name": quote.get("shortname") or quote.get("longname") or sym,
+                    "exchange": exchange,
+                    "quoteType": qt,
+                    "marketType": _infer_market_type(sym, qt, exchange),
+                    "score": 0.5,
+                    "logoUrl": quote.get("logoUrl"),
+                    "sector": quote.get("sector"),
+                })
+    except Exception as e:
+        print(f"search v2 yahoo error: {e}")
+
+    # Sort by score, then symbol length (shorter symbols feel more "exact")
+    results.sort(key=lambda r: (r.get("score", 0), -len(r.get("symbol", ""))), reverse=True)
+    paged = results[offset: offset + limit]
+
+    # Quote hydration (best effort, cached)
+    if with_quotes and paged:
+        quotes = _hydrate_quotes_fast([r["symbol"] for r in paged])
+        for r in paged:
+            qd = quotes.get(r["symbol"])
+            if qd:
+                r.update(qd)
+
+    out = {"results": paged, "meta": {"limit": limit, "offset": offset, "with_quotes": with_quotes}}
+    search_cache.set(cache_key, out)
+    return out, None

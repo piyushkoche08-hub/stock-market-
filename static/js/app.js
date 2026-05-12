@@ -1,6 +1,13 @@
 // static/js/app.js
 
 let currentTicker = 'RELIANCE.NS';
+let searchState = {
+    open: false,
+    activeIndex: -1,
+    items: [],
+    abort: null,
+    cache: new Map(),
+};
 
 document.addEventListener('DOMContentLoaded', () => {
     initChart();
@@ -54,53 +61,272 @@ function setupEventListeners() {
         });
     });
 
-    // Search
+    // Search (universal global)
     const searchInput = document.getElementById('searchInput');
     let searchTimeout;
-    searchInput.addEventListener('input', (e) => {
-        clearTimeout(searchTimeout);
-        const query = e.target.value.trim();
-        if (query.length < 2) {
-            document.getElementById('searchResults').classList.add('hidden');
-            return;
+    const resultsBox = document.getElementById('searchResults');
+    const openSearchBtn = document.querySelector('.ap-search-open');
+
+    const openSearch = () => {
+        if (!resultsBox) return;
+        resultsBox.classList.remove('hidden');
+        searchState.open = true;
+        if (searchInput) searchInput.focus();
+        renderSearchEmpty();
+    };
+
+    const closeSearch = () => {
+        if (!resultsBox) return;
+        resultsBox.classList.add('hidden');
+        searchState.open = false;
+        searchState.activeIndex = -1;
+    };
+
+    if (openSearchBtn) {
+        openSearchBtn.addEventListener('click', () => {
+            if (searchState.open) closeSearch();
+            else openSearch();
+        });
+    }
+
+    // Ctrl/Cmd + K shortcut
+    document.addEventListener('keydown', (e) => {
+        if ((e.ctrlKey || e.metaKey) && (e.key === 'k' || e.key === 'K')) {
+            e.preventDefault();
+            openSearch();
         }
-        searchTimeout = setTimeout(() => handleSearch(query), 300);
+        if (e.key === 'Escape') {
+            closeSearch();
+        }
     });
+
+    // Click outside closes
+    document.addEventListener('click', (e) => {
+        if (!resultsBox || !searchInput) return;
+        const root = resultsBox.parentElement;
+        if (!root) return;
+        if (!root.contains(e.target)) closeSearch();
+    });
+
+    if (searchInput) {
+        searchInput.addEventListener('focus', () => openSearch());
+        searchInput.addEventListener('input', (e) => {
+            clearTimeout(searchTimeout);
+            const query = e.target.value.trim();
+            if (query.length === 0) {
+                renderSearchEmpty();
+                return;
+            }
+            if (query.length < 2) {
+                renderSearchHint('Type at least 2 characters…');
+                return;
+            }
+            searchTimeout = setTimeout(() => handleSearch(query), 160);
+        });
+
+        searchInput.addEventListener('keydown', (e) => {
+            if (!searchState.open) return;
+            if (e.key === 'ArrowDown') {
+                e.preventDefault();
+                setActiveIndex(Math.min(searchState.items.length - 1, searchState.activeIndex + 1));
+            } else if (e.key === 'ArrowUp') {
+                e.preventDefault();
+                setActiveIndex(Math.max(0, searchState.activeIndex - 1));
+            } else if (e.key === 'Enter') {
+                if (searchState.activeIndex >= 0 && searchState.items[searchState.activeIndex]) {
+                    e.preventDefault();
+                    selectSearchItem(searchState.items[searchState.activeIndex]);
+                }
+            }
+        });
+    }
 }
 
 async function handleSearch(query) {
     try {
-        const res = await fetch(`/api/search?q=${query}`);
-        const data = await res.json();
         const resultsBox = document.getElementById('searchResults');
-        resultsBox.innerHTML = '';
-        
-        if (data.results && data.results.length > 0) {
-            data.results.forEach(item => {
-                const div = document.createElement('div');
-                div.className = 'mover-item';
-                div.style.marginBottom = '0.5rem';
-                div.innerHTML = `<div><strong>${item.ticker}</strong><br><small>${item.name}</small></div><div>${item.exchange}</div>`;
-                div.onclick = () => {
-                    currentTicker = item.ticker;
-                    document.getElementById('searchInput').value = '';
-                    resultsBox.classList.add('hidden');
-                    // reset timeframe to 6M
-                    document.querySelectorAll('.timeframes button').forEach(b => b.classList.remove('active'));
-                    document.querySelector('[data-period="6mo"]').classList.add('active');
-                    loadStockData(currentTicker, '6mo', '1d');
-                    fetchNews(currentTicker);
-                };
-                resultsBox.appendChild(div);
-            });
-            resultsBox.classList.remove('hidden');
-        } else {
-            resultsBox.innerHTML = '<div style="padding: 1rem; color: #94a3b8;">No results found</div>';
-            resultsBox.classList.remove('hidden');
+        if (!resultsBox) return;
+
+        const key = query.toUpperCase();
+        if (searchState.cache.has(key)) {
+            renderSearchResults(searchState.cache.get(key), query);
+            return;
+        }
+
+        if (searchState.abort) searchState.abort.abort();
+        searchState.abort = new AbortController();
+
+        renderSearchHint('Searching global markets…');
+
+        // First call: fast discovery (no quotes)
+        const res = await fetch(`/api/search/v2?q=${encodeURIComponent(query)}&limit=18&offset=0&with_quotes=0`, { signal: searchState.abort.signal });
+        const data = await res.json();
+        const items = Array.isArray(data.results) ? data.results : [];
+        searchState.cache.set(key, data);
+        renderSearchResults(data, query);
+
+        // Second call: try to hydrate top results with cached quotes (best effort)
+        if (items.length > 0) {
+            fetch(`/api/search/v2?q=${encodeURIComponent(query)}&limit=8&offset=0&with_quotes=1`)
+                .then((r) => r.json())
+                .then((d) => {
+                    searchState.cache.set(key, d);
+                    // Only re-render if user hasn't changed query
+                    const cur = document.getElementById('searchInput')?.value?.trim() || '';
+                    if (cur.toUpperCase() === key) renderSearchResults(d, query);
+                })
+                .catch(() => {});
         }
     } catch (e) {
+        if (e?.name === 'AbortError') return;
         console.error(e);
+        renderSearchHint('Search failed. Check connection.');
     }
+}
+
+function setActiveIndex(idx) {
+    searchState.activeIndex = idx;
+    const resultsBox = document.getElementById('searchResults');
+    if (!resultsBox) return;
+    [...resultsBox.querySelectorAll('.ap-sr-item')].forEach((el, i) => {
+        el.classList.toggle('is-active', i === idx);
+    });
+}
+
+function selectSearchItem(item) {
+    currentTicker = item.symbol || item.ticker || item;
+    const input = document.getElementById('searchInput');
+    if (input) input.value = '';
+    saveSearchHistory(currentTicker);
+    document.getElementById('searchResults')?.classList.add('hidden');
+    // reset timeframe to 6M
+    document.querySelectorAll('.timeframes button').forEach(b => b.classList.remove('active'));
+    document.querySelector('[data-period="6mo"]')?.classList.add('active');
+    loadStockData(currentTicker, '6mo', '1d');
+    fetchNews(currentTicker);
+}
+
+function marketBadge(item) {
+    const sym = (item.symbol || item.ticker || '').toUpperCase();
+    const t = (item.marketType || item.type || item.quoteType || '').toString().toUpperCase();
+    if (t.includes('CRYPTO') || sym.endsWith('-USD')) return { label: 'CRYPTO', tone: 'blue' };
+    if (t.includes('FOREX') || sym.endsWith('=X')) return { label: 'FOREX', tone: 'blue' };
+    if (sym.endsWith('.NS')) return { label: 'NSE', tone: 'blue' };
+    if (sym.endsWith('.BO')) return { label: 'BSE', tone: 'blue' };
+    if (sym.startsWith('^')) return { label: 'INDEX', tone: 'blue' };
+    return { label: (item.exchange || 'GLOBAL').toString().slice(0, 10), tone: 'blue' };
+}
+
+function renderSearchEmpty() {
+    const resultsBox = document.getElementById('searchResults');
+    if (!resultsBox) return;
+    const hist = loadSearchHistory();
+    const trending = ['RELIANCE.NS', 'TCS.NS', '^NSEI', '^GSPC', 'AAPL', 'TSLA', 'NVDA', 'BTC-USD', 'USDINR=X'];
+
+    let html = '';
+    html += `<div class="ap-sr-section">History</div>`;
+    if (hist.length === 0) {
+        html += `<div class="ap-sr-item"><div class="ap-sr-left"><div class="ap-sr-logo">⟲</div><div class="ap-sr-meta"><div class="ap-sr-sym">No history</div><div class="ap-sr-name">Search any market to build history</div></div></div></div>`;
+    } else {
+        html += hist.slice(0, 8).map((s) => renderSearchRow({ symbol: s, name: 'Recent', exchange: 'HISTORY' })).join('');
+    }
+    html += `<div class="ap-sr-section">Trending</div>`;
+    html += trending.map((s) => renderSearchRow({ symbol: s, name: 'Trending', exchange: 'TREND' })).join('');
+    resultsBox.innerHTML = html;
+    resultsBox.classList.remove('hidden');
+    searchState.items = [...hist.slice(0, 8), ...trending].map((s) => ({ symbol: s }));
+    searchState.activeIndex = -1;
+}
+
+function renderSearchHint(text) {
+    const resultsBox = document.getElementById('searchResults');
+    if (!resultsBox) return;
+    resultsBox.innerHTML = `<div class="ap-sr-item"><div class="ap-sr-left"><div class="ap-sr-logo">…</div><div class="ap-sr-meta"><div class="ap-sr-sym">${escapeHtml(text)}</div><div class="ap-sr-name">Symbol • Company • Exchange • Market type</div></div></div></div>`;
+    resultsBox.classList.remove('hidden');
+    searchState.items = [];
+    searchState.activeIndex = -1;
+}
+
+function renderSearchRow(item, idx) {
+    const sym = item.symbol || item.ticker || '';
+    const name = item.name || item.shortname || item.longname || sym;
+    const badge = marketBadge(item);
+    const logo = item.logoUrl ? `<img src="${escapeAttr(item.logoUrl)}" alt="" />` : `${escapeHtml(sym.slice(0,2) || 'M')}`;
+
+    const hasQuote = typeof item.price === 'number' && isFinite(item.price);
+    const chg = typeof item.changePercent === 'number' ? item.changePercent : null;
+    const chgCls = chg === null ? '' : (chg >= 0 ? 'pos' : 'neg');
+    const chgTxt = chg === null ? '' : `${chg >= 0 ? '+' : ''}${chg.toFixed(2)}%`;
+
+    return `
+      <div class="ap-sr-item" data-idx="${idx}">
+        <div class="ap-sr-left">
+          <div class="ap-sr-logo">${logo}</div>
+          <div class="ap-sr-meta">
+            <div class="ap-sr-sym">${escapeHtml(sym)}</div>
+            <div class="ap-sr-name">${escapeHtml(name)}</div>
+          </div>
+        </div>
+        <div class="ap-sr-right">
+          <span class="ap-badge ${badge.tone}">${escapeHtml(badge.label)}</span>
+          ${hasQuote ? `<div class="ap-sr-quote"><div class="ap-sr-price">${item.price.toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:6})}</div><div class="ap-sr-chg ${chgCls}">${escapeHtml(chgTxt)}</div></div>` : ``}
+        </div>
+      </div>
+    `;
+}
+
+function renderSearchResults(data, query) {
+    const resultsBox = document.getElementById('searchResults');
+    if (!resultsBox) return;
+    const items = Array.isArray(data.results) ? data.results : [];
+    if (items.length === 0) {
+        resultsBox.innerHTML = `<div class="ap-sr-item"><div class="ap-sr-left"><div class="ap-sr-logo">0</div><div class="ap-sr-meta"><div class="ap-sr-sym">No results</div><div class="ap-sr-name">Try a symbol like RELIANCE, AAPL, BTC-USD, USDINR=X</div></div></div></div>`;
+        resultsBox.classList.remove('hidden');
+        searchState.items = [];
+        searchState.activeIndex = -1;
+        return;
+    }
+    let html = `<div class="ap-sr-section">Results</div>`;
+    html += items.map((it, idx) => renderSearchRow(it, idx)).join('');
+    resultsBox.innerHTML = html;
+    resultsBox.classList.remove('hidden');
+    searchState.items = items;
+    searchState.activeIndex = -1;
+
+    [...resultsBox.querySelectorAll('.ap-sr-item')].forEach((el) => {
+        const idx = Number(el.getAttribute('data-idx'));
+        if (!Number.isFinite(idx)) return;
+        el.addEventListener('mouseenter', () => setActiveIndex(idx));
+        el.addEventListener('mouseleave', () => setActiveIndex(-1));
+        el.addEventListener('click', () => selectSearchItem(items[idx]));
+    });
+}
+
+function loadSearchHistory() {
+    try {
+        const raw = localStorage.getItem('ap_search_history');
+        const arr = raw ? JSON.parse(raw) : [];
+        return Array.isArray(arr) ? arr : [];
+    } catch {
+        return [];
+    }
+}
+
+function saveSearchHistory(symbol) {
+    try {
+        const sym = (symbol || '').toString().toUpperCase();
+        if (!sym) return;
+        const cur = loadSearchHistory();
+        const next = [sym, ...cur.filter((x) => x !== sym)].slice(0, 12);
+        localStorage.setItem('ap_search_history', JSON.stringify(next));
+    } catch {}
+}
+
+function escapeHtml(s) {
+    return String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#039;' }[c]));
+}
+function escapeAttr(s) {
+    return escapeHtml(s).replace(/`/g, '&#096;');
 }
 
 async function loadStockData(ticker, period, interval, retries = 2) {
@@ -165,19 +391,33 @@ async function loadStockData(ticker, period, interval, retries = 2) {
     }
 }
 
+function formatMarketSummaryPrice(price, currency) {
+    const cur = currency || 'USD';
+    try {
+        return new Intl.NumberFormat(cur === 'INR' ? 'en-IN' : undefined, {
+            style: 'currency',
+            currency: cur,
+            minimumFractionDigits: 2,
+            maximumFractionDigits: 2,
+        }).format(Number(price));
+    } catch {
+        return String(price ?? '');
+    }
+}
+
 async function fetchMarketSummary() {
     try {
         const isLocalFile = window.location.protocol === 'file:';
         const baseUrl = isLocalFile ? 'http://127.0.0.1:8000' : '';
-        const res = await fetch(`${baseUrl}/index`);
-        const data = await res.json();
+        const res = await fetch(`${baseUrl}/api/market-summary`);
+        const payload = await res.json();
+        const data = payload.summary || [];
         const container = document.getElementById('marketSummary');
         if (!container) return;
         container.innerHTML = '';
         
         if (data && Array.isArray(data)) {
             data.forEach((m, idx) => {
-                const sym = m.currency === 'INR' ? '₹' : (m.currency === 'USD' ? '$' : '');
                 const isPos = m.changePercent >= 0;
                 
                 const tr = document.createElement('tr');
@@ -191,7 +431,7 @@ async function fetchMarketSummary() {
                     </td>
                     <td>
                         <div class="price-info">
-                            <span class="price">${sym}${m.price.toLocaleString(undefined, {minimumFractionDigits: 2})}</span>
+                            <span class="price">${formatMarketSummaryPrice(m.price, m.currency)}</span>
                             <span class="currency">${m.currency}</span>
                         </div>
                     </td>
@@ -247,7 +487,7 @@ async function fetchTopMovers() {
         const renderMovers = (list, elementId) => {
             const container = document.getElementById(elementId);
             container.innerHTML = '';
-            if (list) {
+            if (list && list.length > 0) {
                 list.forEach(item => {
                     const isPos = item.change >= 0;
                     const el = document.createElement('div');
@@ -268,6 +508,12 @@ async function fetchTopMovers() {
                     };
                     container.appendChild(el);
                 });
+            } else {
+                const empty = document.createElement('div');
+                empty.className = 'mover-item';
+                empty.style.opacity = '0.8';
+                empty.innerHTML = `<div class="mover-name">No data</div><div class="mover-price" style="color: var(--text-muted); font-size: 0.85rem;">—</div>`;
+                container.appendChild(empty);
             }
         };
         
@@ -285,7 +531,7 @@ async function fetchSectors() {
         const container = document.getElementById('sectorsList');
         container.innerHTML = '';
         
-        if (data.sectors) {
+        if (data.sectors && data.sectors.length > 0) {
             data.sectors.forEach(s => {
                 const isPos = s.change >= 0;
                 const el = document.createElement('div');
@@ -298,6 +544,12 @@ async function fetchSectors() {
                 `;
                 container.appendChild(el);
             });
+        } else {
+            const empty = document.createElement('div');
+            empty.className = 'mover-item';
+            empty.style.opacity = '0.8';
+            empty.innerHTML = `<div class="mover-name">No sector data</div><div class="mover-price" style="color: var(--text-muted); font-size: 0.85rem;">—</div>`;
+            container.appendChild(empty);
         }
     } catch (e) {
         console.error(e);

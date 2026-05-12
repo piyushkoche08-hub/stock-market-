@@ -24,8 +24,68 @@ const formatNumber = (val) => {
     return val.toLocaleString('en-IN');
 };
 
+function escapeHtml(str) {
+    return String(str || '')
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;');
+}
+
+function formatMoverPriceSafe(price, currency) {
+    const n = Number(price);
+    if (!Number.isFinite(n)) return '—';
+    try {
+        return formatCurrency(n, currency);
+    } catch {
+        return currency === 'INR'
+            ? `₹${n.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
+            : `$${n.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+    }
+}
+
+function formatChangePctSafe(stock) {
+    const c = Number(stock.change);
+    if (!Number.isFinite(c)) return '—';
+    return `${c >= 0 ? '+' : ''}${c.toFixed(2)}%`;
+}
+
 let currentCategory = 'Indian Market';
 let currentCategoryAssets = [];
+let moversCache = null;
+
+function isIndianTicker(t) {
+    return /\.(NS|BO)$/i.test(t || '');
+}
+
+function currencyForMoverTicker(t) {
+    const s = t || '';
+    if (isIndianTicker(s)) return 'INR';
+    if (/^USDINR/i.test(s) || /^EURINR/i.test(s)) return 'INR';
+    return 'USD';
+}
+
+function filterMoversByCategory(stocks, cat) {
+    if (!stocks || !stocks.length) return [];
+    if (cat === 'Indian Market') {
+        return stocks.filter((s) => isIndianTicker(s.ticker));
+    }
+    if (cat === 'US Market') {
+        return stocks.filter(
+            (s) =>
+                !isIndianTicker(s.ticker) &&
+                !/=X$/i.test(s.ticker) &&
+                !/-USD$/i.test(s.ticker)
+        );
+    }
+    if (cat === 'Forex') {
+        return stocks.filter((s) => /=X$/i.test(s.ticker));
+    }
+    if (cat === 'Crypto' || cat === 'Meme Coins') {
+        return stocks.filter((s) => /-USD$/i.test(s.ticker));
+    }
+    return stocks;
+}
 
 function renderCategoryAssets(assets, cat) {
     const body = document.getElementById('category-assets-body');
@@ -152,9 +212,14 @@ async function loadMarketIndices() {
             { symbol: '^FTSE', name: 'FTSE 100' }
         ];
 
+        const indianIndexSymbols = new Set(['^NSEI', '^BSESN']);
         indicesToShow.forEach(idx => {
             const item = data.find(i => i.symbol === idx.symbol) || {
-                symbol: idx.symbol, name: idx.name, price: 0, changePercent: 0, currency: idx.symbol.includes('^NSE') ? 'INR' : 'USD'
+                symbol: idx.symbol,
+                name: idx.name,
+                price: 0,
+                changePercent: 0,
+                currency: indianIndexSymbols.has(idx.symbol) ? 'INR' : 'USD',
             };
             
             const isPositive = item.changePercent >= 0;
@@ -167,8 +232,8 @@ async function loadMarketIndices() {
             tr.innerHTML = `
                 <td class="px-8 py-5">
                     <div class="flex items-center gap-4">
-                        <div class="w-8 h-8 rounded-lg bg-slate-800 border border-white/10 flex items-center justify-center text-[10px] font-black text-slate-500 group-hover:text-blue-400 transition-colors">
-                            ${idx.name.charAt(0)}
+                        <div class="w-8 h-8 rounded-lg bg-slate-800 border border-white/10 flex items-center justify-center text-[10px] font-black text-slate-500 group-hover:text-blue-400 transition-colors" style="line-height:1;">
+                            <span style="line-height:1; display:inline-flex; align-items:center; justify-content:center; width:100%; height:100%;">${idx.name.charAt(0)}</span>
                         </div>
                         <div class="flex flex-col">
                             <span class="text-xs font-black text-white group-hover:text-blue-400 transition-colors tracking-tight">${idx.name}</span>
@@ -177,7 +242,7 @@ async function loadMarketIndices() {
                     </div>
                 </td>
                 <td class="px-8 py-5 font-mono text-xs font-black text-white">
-                    ${formatCurrency(item.price, item.currency, true)}
+                    ${formatCurrency(item.price, item.currency, false)}
                 </td>
                 <td class="px-8 py-5">
                     <div class="flex flex-col">
@@ -216,7 +281,7 @@ async function switchCategory(cat) {
     });
 
     // Update Headers
-    document.getElementById('explorer-title').textContent = `${cat} Market Assets`;
+    document.getElementById('explorer-title').textContent = `${cat} Assets`;
     document.getElementById('explorer-desc').textContent = `Live tracking for ${cat} across major exchanges`;
     document.getElementById('news-title').textContent = `${cat} Updates`;
     const searchInput = document.getElementById('assets-search-input');
@@ -224,6 +289,7 @@ async function switchCategory(cat) {
 
     loadCategoryAssets(cat);
     loadGeneralNews(cat);
+    renderTopMoversPanel();
 }
 
 async function loadCategoryAssets(cat) {
@@ -288,33 +354,56 @@ async function loadGeneralNews(cat = null) {
 }
 
 
+function renderTopMoversPanel() {
+    const container = document.getElementById('movers-mini-list');
+    if (!container || !moversCache) return;
+
+    let rows = [...(moversCache.gainers || [])];
+    rows = filterMoversByCategory(rows, currentCategory);
+    rows.sort((a, b) => b.change - a.change);
+    rows = rows.slice(0, 5);
+
+    container.innerHTML = '';
+
+    if (rows.length === 0) {
+        container.innerHTML =
+            '<div class="movers-mini-card text-center text-xs text-slate-500 py-8">No top movers for this market right now.</div>';
+        return;
+    }
+
+    rows.forEach((stock) => {
+        const chg = Number(stock.change);
+        const isPositive = Number.isFinite(chg) ? chg >= 0 : true;
+        const currency = currencyForMoverTicker(stock.ticker);
+        const sym = String(stock.ticker || '')
+            .replace(/\.NS$/i, '')
+            .replace(/\.BO$/i, '')
+            .replace(/=X$/i, '');
+        const div = document.createElement('div');
+        div.className = 'movers-mini-card';
+        div.onclick = () => (window.location.href = `index.html?ticker=${stock.ticker}`);
+        div.innerHTML = `
+                <div class="movers-mini-left">
+                    <span class="movers-mini-symbol">${escapeHtml(sym)}</span>
+                    <span class="movers-mini-name">${escapeHtml(stock.name || '')}</span>
+                </div>
+                <div class="movers-mini-right">
+                    <div class="movers-mini-price">${formatMoverPriceSafe(stock.price, currency)}</div>
+                    <div class="movers-mini-pct ${isPositive ? 'up' : 'down'}">${formatChangePctSafe(stock)}</div>
+                </div>
+            `;
+        container.appendChild(div);
+    });
+}
+
 async function loadTopMovers() {
     try {
         const res = await fetch(`${API_BASE}/top-movers`);
-        const data = await res.json();
-        const container = document.getElementById('movers-mini-list');
-        if (!container) return;
-        container.innerHTML = '';
-
-        data.gainers.slice(0, 5).forEach(stock => {
-            const isPositive = stock.change >= 0;
-            const currency = (stock.ticker.endsWith('.NS') || stock.ticker.endsWith('.BO')) ? 'INR' : 'USD';
-            const div = document.createElement('div');
-            div.className = 'p-4 flex justify-between items-center hover:bg-white/5 cursor-pointer transition-colors';
-            div.onclick = () => window.location.href = `index.html?ticker=${stock.ticker}`;
-            div.innerHTML = `
-                <div class="flex flex-col">
-                    <span class="text-xs font-bold text-white">${stock.ticker.replace('.NS', '').replace('.BO', '').replace('=X', '')}</span>
-                    <span class="text-[9px] text-slate-500 uppercase">${stock.name}</span>
-                </div>
-                <div class="text-right">
-                    <div class="text-xs font-bold text-white">${formatCurrency(stock.price, currency)}</div>
-                    <div class="text-[10px] font-black ${isPositive ? 'text-secondary' : 'text-error'}">${isPositive ? '+' : ''}${stock.change.toFixed(2)}%</div>
-                </div>
-            `;
-            container.appendChild(div);
-        });
-    } catch (e) { console.error("Movers error:", e); }
+        moversCache = await res.json();
+        renderTopMoversPanel();
+    } catch (e) {
+        console.error('Movers error:', e);
+    }
 }
 
 async function loadSectors() {
@@ -323,43 +412,65 @@ async function loadSectors() {
         const data = await res.json();
         const container = document.getElementById('sector-mini-grid');
         if (!container) return;
-        container.innerHTML = '';
 
         if (!data.sectors || data.sectors.length === 0) {
-            container.innerHTML = '<div class="col-span-2 text-xs text-slate-400 font-semibold">Sector data is currently unavailable.</div>';
+            container.innerHTML =
+                '<div class="p-6 text-xs text-slate-400 font-semibold text-center">Sector data is currently unavailable.</div>';
             return;
         }
 
-        data.sectors.forEach(sector => {
+        const tbody = document.createElement('tbody');
+        data.sectors.forEach((sector) => {
             const isPositive = sector.change >= 0;
-            const div = document.createElement('div');
-            div.className = `sector-card ${isPositive ? 'positive bg-secondary-soft' : 'negative bg-error-soft'}`;
-            div.innerHTML = `
-                <div class="flex justify-between items-start">
-                    <span class="text-[10px] font-black text-slate-500 uppercase tracking-widest">${sector.name.replace('NIFTY ', '')}</span>
-                    <span class="material-symbols-outlined text-xs ${isPositive ? 'text-secondary' : 'text-error'}">${isPositive ? 'trending_up' : 'trending_down'}</span>
-                </div>
-                <span class="${isPositive ? 'text-secondary' : 'text-error'} text-lg font-black tracking-tighter">${isPositive ? '+' : ''}${sector.change.toFixed(2)}%</span>
+            const pctClass = isPositive ? 'text-secondary' : 'text-error';
+            const icon = isPositive ? 'trending_up' : 'trending_down';
+            const tr = document.createElement('tr');
+            tr.innerHTML = `
+                <td class="sector-name-cell">
+                    <div>${sector.name}</div>
+                </td>
+                <td class="text-right whitespace-nowrap">
+                    <span class="text-sm font-black ${pctClass}">${isPositive ? '+' : ''}${sector.change.toFixed(2)}%</span>
+                </td>
+                <td class="text-right w-12">
+                    <span class="material-symbols-outlined text-lg ${pctClass}" aria-hidden="true">${icon}</span>
+                </td>
             `;
-            container.appendChild(div);
+            tbody.appendChild(tr);
         });
-    } catch (e) { console.error("Sectors error:", e); }
+
+        container.innerHTML = `
+            <table>
+                <thead>
+                    <tr>
+                        <th scope="col">Sector</th>
+                        <th scope="col" class="text-right">1D %</th>
+                        <th scope="col" class="text-right w-12">Trend</th>
+                    </tr>
+                </thead>
+            </table>
+        `;
+        container.querySelector('table').appendChild(tbody);
+    } catch (e) {
+        console.error('Sectors error:', e);
+    }
 }
 
 
-document.addEventListener('DOMContentLoaded', () => {
+document.addEventListener('DOMContentLoaded', async () => {
     const searchInput = document.getElementById('assets-search-input');
     if (searchInput) {
         searchInput.addEventListener('input', applyAssetsSearch);
     }
 
     loadMarketIndices();
+    await loadTopMovers();
     switchCategory('Indian Market');
-    loadTopMovers();
     loadSectors();
-    
+
     setInterval(() => {
         loadMarketIndices();
+        loadTopMovers();
         loadCategoryAssets(currentCategory);
         loadGeneralNews(currentCategory);
     }, 60000); // 1 minute

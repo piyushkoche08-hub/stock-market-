@@ -1,3 +1,4 @@
+import logging
 from flask import Blueprint, request, jsonify
 from .services import (
     get_stock_data_service,
@@ -9,10 +10,12 @@ from .services import (
     get_popular_stocks,
     get_general_news_service,
     POPULAR_STOCKS,
-    search_stocks_service
+    search_stocks_service,
+    search_stocks_v2_service
 )
 
 api_bp = Blueprint('api', __name__, url_prefix='/api')
+logger = logging.getLogger(__name__)
 
 @api_bp.route("/stock/<ticker>", methods=["GET"])
 @api_bp.route("/stocks/<ticker>", methods=["GET"]) # keep old one for backward compatibility
@@ -76,3 +79,38 @@ def search_stocks():
     if error:
         return jsonify({"detail": error}), 500
     return jsonify(data)
+
+@api_bp.route("/search/v2", methods=["GET"])
+def search_stocks_v2():
+    query = request.args.get('q', '')
+    limit = int(request.args.get('limit', 20))
+    offset = int(request.args.get('offset', 0))
+    with_quotes = request.args.get('with_quotes', '0') in ('1', 'true', 'True', 'yes')
+    data, error = search_stocks_v2_service(query, limit=limit, offset=offset, with_quotes=with_quotes)
+    if error:
+        return jsonify({"detail": error}), 500
+    return jsonify(data)
+
+
+@api_bp.route("/portfolio/ocr", methods=["POST"])
+def portfolio_screenshot_ocr():
+    """Fast server-side OCR for portfolio screenshots (RapidOCR / EasyOCR / Tesseract)."""
+    if 'image' not in request.files:
+        return jsonify({"detail": "Missing multipart field 'image'"}), 400
+    f = request.files['image']
+    if not f or not getattr(f, 'filename', None):
+        return jsonify({"detail": "No image file"}), 400
+    data = f.read()
+    if len(data) > 15 * 1024 * 1024:
+        return jsonify({"detail": "Image too large (max 15 MB)"}), 413
+    try:
+        from .ocr_service import run_portfolio_ocr
+        result = run_portfolio_ocr(data)
+        return jsonify(result)
+    except ValueError as e:
+        return jsonify({"detail": str(e)}), 400
+    except RuntimeError as e:
+        return jsonify({"detail": str(e)}), 503
+    except Exception as e:
+        logger.exception("portfolio OCR failed")
+        return jsonify({"detail": str(e)}), 500
