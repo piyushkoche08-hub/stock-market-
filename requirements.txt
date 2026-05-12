@@ -6,3 +6,9 @@ numpy==1.26.2
 scikit-learn==1.3.2
 python-dateutil==2.8.2
 requests==2.31.0
+# Portfolio screenshot OCR (server): needs Tesseract OCR binary + these pip packages.
+# Windows (recommended): winget install --id UB-Mannheim.TesseractOCR
+# Then: pip install -r requirements.txt
+Pillow>=10.2.0
+pytesseract>=0.3.10
+# Faster optional backends — see requirements-ocr-optional.txt

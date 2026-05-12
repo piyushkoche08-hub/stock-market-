@@ -5,3 +5,5 @@ pandas
 numpy
 scikit-learn
 requests
+Pillow>=10.2.0
+pytesseract>=0.3.10
