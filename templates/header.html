@@ -1,8 +1,140 @@
 <style>
-    .ap-header {
+    /* Fixed stack: live ticker + main app bar */
+    .ap-fixed-stack {
         position: fixed;
-        top: 0; left: 0; right: 0;
-        height: 64px;
+        top: 0;
+        left: 0;
+        right: 0;
+        z-index: 9999;
+        display: flex;
+        flex-direction: column;
+        font-family: 'Inter', system-ui, sans-serif;
+        box-shadow: 0 8px 32px rgba(0, 0, 0, 0.45);
+    }
+
+    /* --- Live market ticker (dual-track infinite marquee) --- */
+    .ap-ticker {
+        height: var(--ap-ticker-h, 38px);
+        flex-shrink: 0;
+        display: flex;
+        align-items: stretch;
+        background: linear-gradient(90deg, #060a14 0%, #0d1528 22%, #0a1224 50%, #0d1528 78%, #060a14 100%);
+        border-bottom: 1px solid rgba(59, 130, 246, 0.22);
+        overflow: hidden;
+        position: relative;
+    }
+    .ap-ticker::after {
+        content: '';
+        position: absolute;
+        inset: 0;
+        background: linear-gradient(90deg, rgba(6, 10, 20, 0.95) 0%, transparent 8%, transparent 92%, rgba(6, 10, 20, 0.95) 100%);
+        pointer-events: none;
+        z-index: 2;
+    }
+    .ap-ticker-pulse {
+        flex: 0 0 auto;
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        padding: 0 12px 0 14px;
+        z-index: 3;
+        background: linear-gradient(90deg, rgba(6, 10, 20, 0.98), rgba(13, 21, 40, 0.4));
+        border-right: 1px solid rgba(255, 255, 255, 0.06);
+    }
+    .ap-ticker-pulse-dot {
+        width: 6px;
+        height: 6px;
+        border-radius: 50%;
+        background: #22c55e;
+        box-shadow: 0 0 10px #22c55e;
+        animation: ap-ticker-blink 1.4s ease-in-out infinite;
+    }
+    @keyframes ap-ticker-blink {
+        0%, 100% { opacity: 1; transform: scale(1); }
+        50% { opacity: 0.45; transform: scale(0.85); }
+    }
+    .ap-ticker-pulse span {
+        font-size: 9px;
+        font-weight: 900;
+        letter-spacing: 0.18em;
+        color: #4ade80;
+        text-transform: uppercase;
+        white-space: nowrap;
+    }
+    .ap-ticker-marquee {
+        flex: 1;
+        min-width: 0;
+        overflow: hidden;
+        position: relative;
+        z-index: 1;
+        display: flex;
+        align-items: center;
+        mask-image: linear-gradient(90deg, transparent, #000 2%, #000 98%, transparent);
+        -webkit-mask-image: linear-gradient(90deg, transparent, #000 2%, #000 98%, transparent);
+    }
+    .ap-ticker-rail {
+        display: flex;
+        width: max-content;
+        animation: ap-ticker-scroll 85s linear infinite;
+        will-change: transform;
+    }
+    .ap-ticker-rail:hover {
+        animation-play-state: paused;
+    }
+    @keyframes ap-ticker-scroll {
+        0% { transform: translateX(0); }
+        100% { transform: translateX(-50%); }
+    }
+    .ap-ticker-item {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        padding: 0 20px;
+        border-right: 1px solid rgba(255, 255, 255, 0.06);
+        white-space: nowrap;
+    }
+    .ap-ticker-cat {
+        font-size: 8px;
+        font-weight: 900;
+        letter-spacing: 0.12em;
+        text-transform: uppercase;
+        padding: 2px 6px;
+        border-radius: 4px;
+        border: 1px solid rgba(255, 255, 255, 0.12);
+    }
+    .ap-ticker-cat--in { color: #fbbf24; background: rgba(251, 191, 36, 0.1); border-color: rgba(251, 191, 36, 0.25); }
+    .ap-ticker-cat--us { color: #60a5fa; background: rgba(96, 165, 250, 0.1); border-color: rgba(96, 165, 250, 0.28); }
+    .ap-ticker-cat--cr { color: #a78bfa; background: rgba(167, 139, 250, 0.1); border-color: rgba(167, 139, 250, 0.28); }
+    .ap-ticker-cat--meme { color: #f472b6; background: rgba(244, 114, 182, 0.1); border-color: rgba(244, 114, 182, 0.28); }
+    .ap-ticker-sym {
+        font-size: 12px;
+        font-weight: 900;
+        letter-spacing: 0.04em;
+        color: #f1f5f9;
+        font-variant-numeric: tabular-nums;
+    }
+    .ap-ticker-name {
+        font-size: 10px;
+        font-weight: 600;
+        color: #94a3b8;
+        max-width: 140px;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+    .ap-ticker-spark {
+        width: 28px;
+        height: 10px;
+        opacity: 0.65;
+        background: linear-gradient(90deg, transparent, rgba(34, 197, 94, 0.5), transparent);
+        border-radius: 2px;
+        flex-shrink: 0;
+    }
+    .ap-ticker-item:nth-child(4n+2) .ap-ticker-spark {
+        background: linear-gradient(90deg, transparent, rgba(239, 68, 68, 0.45), transparent);
+    }
+
+    .ap-header {
+        height: var(--ap-header-h, 64px);
         display: flex;
         align-items: center;
         justify-content: space-between;
@@ -12,7 +144,7 @@
         backdrop-filter: blur(16px);
         -webkit-backdrop-filter: blur(16px);
         border-bottom: 1px solid rgba(255, 255, 255, 0.08);
-        z-index: 9999;
+        flex-shrink: 0;
         font-family: 'Inter', system-ui, sans-serif;
         box-sizing: border-box;
     }
@@ -143,6 +275,8 @@
         .ap-nav-desktop { display: none !important; }
         .ap-trade-btn { display: none !important; }
         .ap-brand-name { display: none !important; }
+        .ap-ticker-name { max-width: 72px; }
+        .ap-ticker-item { padding: 0 12px; gap: 6px; }
         .ap-mobile-nav {
             display: flex;
             position: fixed;
@@ -180,42 +314,54 @@
     }
 </style>
 
-<header class="ap-header">
-    <a href="/" class="ap-brand">
-        <span class="ap-brand-icon">
-            <span class="material-symbols-outlined">query_stats</span>
-        </span>
-        <span class="ap-brand-name">AlphaPulse <b>Terminal</b></span>
-    </a>
-
-    <!-- Universal Global Search -->
-    <div class="ap-search">
-        <div class="ap-search-input">
-            <span class="material-symbols-outlined">search</span>
-            <input id="searchInput" type="text" placeholder="Search global markets (NSE, NASDAQ, Forex, Crypto)..." autocomplete="off" />
-            <span class="ap-kbd-hint">Ctrl K</span>
+<div class="ap-fixed-stack">
+    <div class="ap-ticker" id="ap-market-ticker" aria-label="Live symbols across markets">
+        <div class="ap-ticker-pulse" aria-hidden="true">
+            <span class="ap-ticker-pulse-dot"></span>
+            <span>Live</span>
         </div>
-        <div id="searchResults" class="ap-search-dropdown hidden" role="listbox" aria-label="Search results"></div>
+        <div class="ap-ticker-marquee">
+            <div class="ap-ticker-rail" id="ap-ticker-rail"></div>
+        </div>
     </div>
 
-    <nav class="ap-nav-desktop">
-        <a href="/"          class="ap-nav-link {% if active_page == 'index'     %}is-active{% endif %}">Dashboard</a>
-        <a href="/markets"   class="ap-nav-link {% if active_page == 'markets'   %}is-active{% endif %}">Markets</a>
-        <a href="/portfolio" class="ap-nav-link {% if active_page == 'portfolio' %}is-active{% endif %}">Portfolio</a>
-        <a href="/reports"   class="ap-nav-link {% if active_page == 'reports'   %}is-active{% endif %}">Reports</a>
-    </nav>
+    <header class="ap-header">
+        <a href="/" class="ap-brand">
+            <span class="ap-brand-icon">
+                <span class="material-symbols-outlined">query_stats</span>
+            </span>
+            <span class="ap-brand-name">AlphaPulse <b>Terminal</b></span>
+        </a>
 
-    <div class="ap-actions">
-        <button class="ap-notif-btn" aria-label="Notifications">
-            <span class="material-symbols-outlined">notifications</span>
-            <span class="ap-notif-dot"></span>
-        </button>
-        <button class="ap-notif-btn ap-search-open" aria-label="Open search">
-            <span class="material-symbols-outlined">manage_search</span>
-        </button>
-        <button class="ap-trade-btn">Trade</button>
-    </div>
-</header>
+        <!-- Universal Global Search -->
+        <div class="ap-search">
+            <div class="ap-search-input">
+                <span class="material-symbols-outlined">search</span>
+                <input id="searchInput" type="text" placeholder="Search global markets (NSE, NASDAQ, Forex, Crypto)..." autocomplete="off" />
+                <span class="ap-kbd-hint">Ctrl K</span>
+            </div>
+            <div id="searchResults" class="ap-search-dropdown hidden" role="listbox" aria-label="Search results"></div>
+        </div>
+
+        <nav class="ap-nav-desktop">
+            <a href="/"          class="ap-nav-link {% if active_page == 'index'     %}is-active{% endif %}">Dashboard</a>
+            <a href="/markets"   class="ap-nav-link {% if active_page == 'markets'   %}is-active{% endif %}">Markets</a>
+            <a href="/portfolio" class="ap-nav-link {% if active_page == 'portfolio' %}is-active{% endif %}">Portfolio</a>
+            <a href="/reports"   class="ap-nav-link {% if active_page == 'reports'   %}is-active{% endif %}">Reports</a>
+        </nav>
+
+        <div class="ap-actions">
+            <button class="ap-notif-btn" aria-label="Notifications">
+                <span class="material-symbols-outlined">notifications</span>
+                <span class="ap-notif-dot"></span>
+            </button>
+            <button class="ap-notif-btn ap-search-open" aria-label="Open search">
+                <span class="material-symbols-outlined">manage_search</span>
+            </button>
+            <button class="ap-trade-btn">Trade</button>
+        </div>
+    </header>
+</div>
 
 <!-- Mobile Bottom Nav -->
 <nav class="ap-mobile-nav">
@@ -232,3 +378,103 @@
         <span class="material-symbols-outlined">description</span>Reports
     </a>
 </nav>
+
+<script>
+(function () {
+    const rail = document.getElementById('ap-ticker-rail');
+    if (!rail) return;
+
+    const API = (window.location.protocol === 'file:') ? 'http://127.0.0.1:8000/api' : '/api';
+    const CATS = [
+        { key: 'Indian Market', cls: 'ap-ticker-cat--in', label: 'NSE' },
+        { key: 'US Market', cls: 'ap-ticker-cat--us', label: 'US' },
+        { key: 'Crypto', cls: 'ap-ticker-cat--cr', label: 'Crypto' },
+        { key: 'Meme Coins', cls: 'ap-ticker-cat--meme', label: 'Meme' }
+    ];
+
+    function shortSym(t) {
+        return String(t || '')
+            .replace(/\.NS$/i, '')
+            .replace(/\.BO$/i, '')
+            .replace(/=X$/i, '')
+            .replace(/-USD$/i, '');
+    }
+
+    function shuffle(arr) {
+        const a = arr.slice();
+        for (let i = a.length - 1; i > 0; i--) {
+            const j = Math.floor(Math.random() * (i + 1));
+            [a[i], a[j]] = [a[j], a[i]];
+        }
+        return a;
+    }
+
+    function esc(s) {
+        return String(s == null ? '' : s)
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/"/g, '&quot;');
+    }
+
+    function buildItems(stocksMap) {
+        const out = [];
+        for (const def of CATS) {
+            const list = (stocksMap && stocksMap[def.key]) || [];
+            const pick = shuffle(list).slice(0, 10);
+            for (const row of pick) {
+                if (!row || !row.ticker) continue;
+                out.push({
+                    sym: shortSym(row.ticker),
+                    name: (row.name || row.ticker).slice(0, 48),
+                    catCls: def.cls,
+                    catLabel: def.label
+                });
+            }
+        }
+        return shuffle(out);
+    }
+
+    function render(items) {
+        if (!items.length) {
+            rail.innerHTML = '<span class="ap-ticker-item"><span class="ap-ticker-sym">—</span><span class="ap-ticker-name">No symbols loaded</span></span>';
+            rail.innerHTML = rail.innerHTML + rail.innerHTML;
+            return;
+        }
+        const html = items.map(function (it) {
+            return '<span class="ap-ticker-item">' +
+                '<span class="ap-ticker-cat ' + it.catCls + '">' + it.catLabel + '</span>' +
+                '<span class="ap-ticker-sym">' + esc(it.sym) + '</span>' +
+                '<span class="ap-ticker-name">' + esc(it.name) + '</span>' +
+                '<span class="ap-ticker-spark" aria-hidden="true"></span>' +
+                '</span>';
+        }).join('');
+        rail.innerHTML = html + html;
+    }
+
+    async function refresh() {
+        try {
+            const res = await fetch(API + '/popular-stocks');
+            if (!res.ok) throw new Error('bad');
+            const data = await res.json();
+            const items = buildItems(data.stocks || data);
+            if (items.length) {
+                render(items);
+                return;
+            }
+        } catch (e) { /* fall through */ }
+        render([
+            { sym: 'RELIANCE', name: 'Reliance Industries', catCls: 'ap-ticker-cat--in', catLabel: 'NSE' },
+            { sym: 'TCS', name: 'Tata Consultancy', catCls: 'ap-ticker-cat--in', catLabel: 'NSE' },
+            { sym: 'NVDA', name: 'NVIDIA Corp', catCls: 'ap-ticker-cat--us', catLabel: 'US' },
+            { sym: 'AAPL', name: 'Apple Inc.', catCls: 'ap-ticker-cat--us', catLabel: 'US' },
+            { sym: 'BTC', name: 'Bitcoin', catCls: 'ap-ticker-cat--cr', catLabel: 'Crypto' },
+            { sym: 'ETH', name: 'Ethereum', catCls: 'ap-ticker-cat--cr', catLabel: 'Crypto' },
+            { sym: 'DOGE', name: 'Dogecoin', catCls: 'ap-ticker-cat--meme', catLabel: 'Meme' },
+            { sym: 'PEPE', name: 'Pepe', catCls: 'ap-ticker-cat--meme', catLabel: 'Meme' }
+        ]);
+    }
+
+    refresh();
+    setInterval(refresh, 5 * 60 * 1000);
+})();
+</script>

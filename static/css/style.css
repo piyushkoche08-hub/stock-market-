@@ -2,6 +2,11 @@
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
 
 :root {
+  /* Shared header + live ticker (see templates/header.html) */
+  --ap-ticker-h: 38px;
+  --ap-header-h: 64px;
+  --ap-top-stack-h: calc(var(--ap-ticker-h) + var(--ap-header-h));
+
   --bg-color: #0b1020;
   --panel-bg: rgba(18, 25, 42, 0.72);
   --border-color: rgba(255, 255, 255, 0.08);
@@ -35,7 +40,11 @@ body {
   color: var(--text-main);
   min-height: 100vh;
   overflow-x: hidden;
-  padding-top: 64px;
+  padding-top: var(--ap-top-stack-h, 102px);
+}
+
+.ap-main-below-global-header {
+  padding-top: calc(var(--ap-top-stack-h, 102px) + 0.75rem);
 }
 
 /* Universal header search (shared across pages) */

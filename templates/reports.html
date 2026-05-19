@@ -31,7 +31,7 @@
     }
 
   </script>
-<link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+<link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}?v=4">
 </head>
 <body class="bg-background text-on-background font-inter min-h-screen">
 
@@ -44,7 +44,7 @@
     {% set active_page = 'reports' %}
     {% include 'header.html' %}
 
-<main class="pt-24 pb-12 px-6 max-w-[1400px] mx-auto dashboard-animate">
+<main class="ap-main-below-global-header pb-12 px-6 max-w-[1400px] mx-auto dashboard-animate">
     <!-- Featured Hero Section -->
     <section class="mb-12">
     <div class="glass-card relative rounded-xl overflow-hidden min-h-[400px] flex items-center">

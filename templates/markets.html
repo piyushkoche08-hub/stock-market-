@@ -26,9 +26,12 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet" crossorigin="anonymous">
     <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" />
     <script src="https://cdn.jsdelivr.net/npm/chart.js@3.9.1/dist/chart.min.js" crossorigin="anonymous"></script>
-    <link rel="stylesheet" href="/static/css/style.css?v=3">
+    <link rel="stylesheet" href="/static/css/style.css?v=4">
     <style>
         :root {
+            --ap-ticker-h: 38px;
+            --ap-header-h: 64px;
+            --ap-top-stack-h: calc(var(--ap-ticker-h) + var(--ap-header-h));
             --primary: #3b82f6;
             --primary-hover: #2563eb;
             --secondary: #00D09C;
@@ -47,10 +50,6 @@
             color: var(--text-main); 
             margin: 0;
             overflow-x: hidden;
-        }
-
-        .markets-page-main {
-            padding: 88px 2rem 3rem;
         }
 
         /* Layout Fallbacks for when Tailwind fails */
@@ -262,7 +261,7 @@
         }
 
         .markets-page-main {
-            padding-top: 6.5rem;
+            padding-top: calc(var(--ap-top-stack-h) + 1.75rem);
             padding-right: 2.5rem;
             padding-bottom: 3rem;
             padding-left: 2.5rem;
@@ -614,7 +613,7 @@
 
         @media (max-width: 768px) {
             .markets-page-main {
-                padding-top: 5.75rem;
+                padding-top: calc(var(--ap-top-stack-h) + 1.25rem);
                 padding-right: 1rem;
                 padding-left: 1rem;
             }

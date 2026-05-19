@@ -32,14 +32,14 @@
 
     </script>
 <title>Portfolio | AlphaPulse X</title>
-<link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+<link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}?v=4">
 </head>
 <body class="bg-background text-on-background font-body-md selection:bg-primary-container selection:text-on-primary-container">
     {% set active_page = 'portfolio' %}
     {% include 'header.html' %}
     
     <!-- Main Content Canvas -->
-    <main class="pt-24 px-6 pb-12 min-h-screen">
+    <main class="ap-main-below-global-header px-6 pb-12 min-h-screen">
 <div class="max-w-7xl mx-auto space-y-8">
 <!-- Header & AI CTA Section -->
 <div class="flex flex-col md:flex-row md:items-end justify-between gap-6">
