@@ -19,6 +19,8 @@ const IndicatorHorizontalBar = () => {
     { key: 'bb', name: 'BB', color: '#94a3b8', value: lastData.Upper_BB ? lastData.Upper_BB.toFixed(1) : null },
     { key: 'volume', name: 'Vol', color: '#26a69a', value: lastData.Volume ? (lastData.Volume / 1000).toFixed(0) + 'K' : null },
     { key: 'ai', name: 'AI', color: '#00D09C', value: lastData.RF_Confidence ? lastData.RF_Confidence.toFixed(0) + '%' : null },
+    { key: 'breakoutProb', name: 'Breakout Prob', color: '#f472b6', value: lastData.Breakout_Prob ? lastData.Breakout_Prob + '%' : null },
+    { key: 'strategyZP', name: 'Strategy ZP', color: '#c084fc', value: lastData.ZP_Strategy_Signal === 1 ? 'BUY' : (lastData.ZP_Strategy_Signal === -1 ? 'SELL' : 'WAIT') },
   ];
 
   return (

@@ -273,8 +273,51 @@ def get_stock_data_service(ticker, period='2y', interval='1d'):
                 print("RF Model error:", e)
                 df['RF_Confidence'] = 50.0
 
+        # --- NEW INDICATOR: Breakout Probability Expo ---
+        try:
+            # 1. Volatility Squeeze (BB Width)
+            df['BB_Width'] = (df['Upper_BB'] - df['Lower_BB']) / df['MA20']
+            # 2. Volume Spike
+            df['Vol_MA'] = df['Volume'].rolling(window=20).mean()
+            df['Vol_Ratio'] = df['Volume'] / df['Vol_MA']
+            # 3. Proximity to 20-day High/Low
+            df['High_20'] = df['High'].rolling(window=20).max()
+            df['Low_20'] = df['Low'].rolling(window=20).min()
+            
+            # Breakout Prob Calculation (Heuristic)
+            # Higher probability if: Squeeze is tight, Volume is rising, and price is near High_20 or Low_20
+            squeeze_factor = (1 - (df['BB_Width'] / df['BB_Width'].rolling(window=50).mean())).clip(0, 1)
+            vol_factor = (df['Vol_Ratio'] / 2).clip(0, 1)
+            prox_high = (1 - (df['High_20'] - df['Close']) / (df['High_20'] * 0.02)).clip(0, 1)
+            prox_low = (1 - (df['Close'] - df['Low_20']) / (df['Low_20'] * 0.02)).clip(0, 1)
+            
+            df['Breakout_Prob'] = ((squeeze_factor * 0.4 + vol_factor * 0.3 + np.maximum(prox_high, prox_low) * 0.3) * 100).fillna(0)
+            df['Breakout_Prob'] = df['Breakout_Prob'].clip(0, 100).round(2)
+        except Exception as e:
+            print("Breakout Prob error:", e)
+            df['Breakout_Prob'] = 0
 
-        
+        # --- NEW INDICATOR: DIY Custom Strategy Builder ZP ---
+        # A composite "Zero Pitch" strategy: Trend (EMA) + Momentum (RSI) + Volume Confirmation
+        try:
+            # Trend component
+            df['Trend_Alignment'] = np.where((df['Close'] > df['EMA_20']) & (df['EMA_20'] > df['EMA_50']), 1, 
+                                    np.where((df['Close'] < df['EMA_20']) & (df['EMA_20'] < df['EMA_50']), -1, 0))
+            # Momentum component
+            df['Mom_Alignment'] = np.where(df['RSI'] > 60, 1, np.where(df['RSI'] < 40, -1, 0))
+            
+            # Strategy Signal: 1 (Buy), -1 (Sell), 0 (Neutral)
+            # Only trigger if Trend and Momentum align with Volume support
+            df['ZP_Strategy_Signal'] = np.where((df['Trend_Alignment'] == 1) & (df['Mom_Alignment'] == 1) & (df['Vol_Ratio'] > 1.1), 1,
+                                       np.where((df['Trend_Alignment'] == -1) & (df['Mom_Alignment'] == -1) & (df['Vol_Ratio'] > 1.1), -1, 0))
+            
+            # Strategy Strength (0-100)
+            df['ZP_Strategy_Strength'] = ((df['RSI'] / 100).abs() * 100).round(2)
+        except Exception as e:
+            print("ZP Strategy error:", e)
+            df['ZP_Strategy_Signal'] = 0
+            df['ZP_Strategy_Strength'] = 0
+
         df.reset_index(inplace=True)
         if 'Datetime' in df.columns:
             df.rename(columns={'Datetime': 'Date'}, inplace=True)
@@ -328,7 +371,12 @@ def get_stock_data_service(ticker, period='2y', interval='1d'):
             except: return val
 
         # Prune columns to only what's needed by the frontend (Reduced payload size by ~60%)
-        keep_cols = ['Date', 'Open', 'High', 'Low', 'Close', 'Volume', 'EMA_20', 'EMA_50', 'EMA_200', 'MACD', 'MACD_Signal', 'MACD_Hist', 'RSI', 'Upper_BB', 'Lower_BB', 'VWAP', 'RF_Signal', 'RF_Confidence']
+        keep_cols = [
+            'Date', 'Open', 'High', 'Low', 'Close', 'Volume', 
+            'EMA_20', 'EMA_50', 'EMA_200', 'MACD', 'MACD_Signal', 'MACD_Hist', 
+            'RSI', 'Upper_BB', 'Lower_BB', 'VWAP', 'RF_Signal', 'RF_Confidence',
+            'Breakout_Prob', 'ZP_Strategy_Signal', 'ZP_Strategy_Strength'
+        ]
         df = df[[c for c in keep_cols if c in df.columns]]
         
         records = df.to_dict(orient='records')
@@ -845,30 +893,40 @@ def search_stocks_service(query):
     seen_tickers = set()
 
     # 3. Enhanced Local Fuzzy Match
-    # Gather all known stocks
     all_known = []
     for cat, stocks in POPULAR_STOCKS.items():
         for s in stocks:
             all_known.append(s)
 
-    # Use difflib for smarter matching
     matches = []
     for s in all_known:
-        # Score based on ticker and name
-        ticker_score = difflib.SequenceMatcher(None, query, s["ticker"].upper()).ratio()
-        name_score = difflib.SequenceMatcher(None, query, s["name"].upper()).ratio()
+        ticker = s["ticker"].upper()
+        name = s["name"].upper()
         
-        # Exact prefix matches get high priority
-        if s["ticker"].upper().startswith(query): ticker_score += 0.5
-        if s["name"].upper().startswith(query): name_score += 0.4
-        
-        max_score = max(ticker_score, name_score)
-        if max_score > 0.4: # Threshold
-            matches.append((max_score, s))
+        # Exact Ticker Match (Highest Priority)
+        if ticker == query or ticker.split('.')[0] == query:
+            matches.append((2.0, s))
+            continue
+            
+        # Prefix Ticker Match
+        if ticker.startswith(query):
+            matches.append((1.5, s))
+            continue
+            
+        # Name Match
+        score = 0
+        if query in name:
+            score = 1.0 if name.startswith(query) else 0.8
+        else:
+            # Fuzzy name match for typos like "inosys"
+            score = difflib.SequenceMatcher(None, query, name).ratio()
+            
+        if score > 0.5:
+            matches.append((score, s))
 
     # Sort by score and add to results
     matches.sort(key=lambda x: x[0], reverse=True)
-    for score, s in matches[:8]:
+    for score, s in matches[:10]:
         if s["ticker"] not in seen_tickers:
             results.append({
                 "ticker": s["ticker"],
@@ -879,7 +937,7 @@ def search_stocks_service(query):
             })
             seen_tickers.add(s["ticker"])
 
-    # 4. Global API Lookup (Yahoo Search) as Fallback/Augmentation
+    # 4. Global API Lookup (Yahoo Search)
     try:
         url = f"https://query2.finance.yahoo.com/v1/finance/search?q={query}&quotesCount=10&newsCount=0"
         headers = {'User-Agent': 'Mozilla/5.0'}
@@ -890,24 +948,24 @@ def search_stocks_service(query):
             for quote in data.get("quotes", []):
                 ticker = quote.get("symbol")
                 if ticker and ticker not in seen_tickers:
-                    # Filter out non-equity if needed, but here we want global coverage
+                    # Prefer Indian stocks for Indian users if possible
+                    score = 0.5
+                    if ".NS" in ticker or ".BO" in ticker: score = 0.6
+                    
                     results.append({
                         "ticker": ticker,
                         "name": quote.get("shortname", quote.get("longname", ticker)),
                         "exchange": quote.get("exchange", "Global"),
                         "type": quote.get("quoteType", "Equity"),
-                        "score": 0.5 # Default score for API results
+                        "score": score
                     })
                     seen_tickers.add(ticker)
     except Exception as e:
         print(f"Global search error: {e}")
 
-    # Final sort (optional, but good to keep local hits on top if they are high confidence)
     results.sort(key=lambda x: x.get('score', 0), reverse=True)
-
     final_results = {"results": results[:15]}
     search_cache.set(cache_key, final_results)
-    
     return final_results, None
 
 

@@ -5,6 +5,7 @@ import IndicatorHorizontalBar from './components/IndicatorHorizontalBar';
 import TimeframeControl from './components/TimeframeControl';
 import TopToolbar from './components/TopToolbar';
 import MarketStatsGrid from './components/MarketStatsGrid';
+import StrategyPanel from './components/StrategyPanel';
 import MarketOverviewTable from './components/MarketOverviewTable';
 import MarketIndexTicker from './components/MarketIndexTicker';
 import { Search, Brain, TrendingUp, Newspaper, ChevronRight, Activity, Wallet, Target, Info, Sparkles } from 'lucide-react';
@@ -129,23 +130,35 @@ const App = () => {
                     placeholder="Search symbol..." 
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter' && searchResults.length > 0) {
+                        selectTicker(searchResults[0].ticker);
+                      }
+                    }}
                     className="bg-slate-900/40 border border-white/5 rounded-lg pl-9 pr-4 py-1.5 text-xs focus:outline-none focus:border-blue-500/30 w-48 transition-all"
                 />
                 {showResults && (
-                    <div className="absolute top-full mt-1 left-0 right-0 glass-panel bg-[#1e222d] border border-white/10 shadow-2xl z-50 max-h-64 overflow-y-auto w-64">
-                    {searchResults.map(res => (
+                    <div className="absolute top-full mt-1 left-0 right-0 glass-panel bg-[#1e222d] border border-white/10 shadow-2xl z-50 max-h-64 overflow-y-auto w-72">
+                    {searchResults.length > 0 ? searchResults.map(res => (
                         <div 
                         key={res.ticker} 
                         onClick={() => selectTicker(res.ticker)}
-                        className="p-2 hover:bg-white/5 cursor-pointer flex justify-between items-center border-b border-white/5 last:border-0"
+                        className="p-3 hover:bg-white/5 cursor-pointer flex justify-between items-center border-b border-white/5 last:border-0 group"
                         >
-                        <div>
-                            <div className="text-xs font-bold text-white">{res.name}</div>
-                            <div className="text-[9px] text-slate-500 font-black">{res.ticker}</div>
+                        <div className="flex-1 min-w-0 pr-2">
+                            <div className="text-xs font-bold text-white truncate group-hover:text-blue-400 transition-colors">{res.name}</div>
+                            <div className="flex items-center gap-2">
+                                <span className="text-[10px] text-slate-500 font-mono font-black">{res.ticker}</span>
+                                <span className="text-[8px] px-1 bg-white/5 text-slate-600 rounded uppercase">{res.exchange}</span>
+                            </div>
                         </div>
-                        <ChevronRight size={12} className="text-slate-700" />
+                        <ChevronRight size={12} className="text-slate-700 group-hover:text-blue-500 transition-colors" />
                         </div>
-                    ))}
+                    )) : (
+                      <div className="p-4 text-center text-[10px] text-slate-600 font-bold uppercase tracking-widest">
+                        No results found
+                      </div>
+                    )}
                     </div>
                 )}
               </div>
@@ -266,6 +279,9 @@ const App = () => {
 
             {/* Market Stats Grid */}
             <MarketStatsGrid />
+
+            {/* Advanced Strategy Analysis */}
+            <StrategyPanel />
 
             <div className="flex items-center justify-between mt-2">
               <h3 className="font-bold text-white text-sm flex items-center gap-2">

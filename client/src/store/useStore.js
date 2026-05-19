@@ -19,12 +19,17 @@ const useStore = create((set, get) => ({
     bb: true,
     rsi: true,
     volume: true,
+    breakoutProb: true,
+    strategyZP: true,
   },
 
   news: [],
   notifications: [],
   unreadCount: 0,
   marketSummary: [],
+  toggleIndicator: (key) => set((state) => ({
+    indicators: { ...state.indicators, [key]: !state.indicators[key] }
+  })),
 
   setTicker: (ticker) => set({ ticker, data: [], predictions: [], news: [] }),
   setTimeframe: (timeframe) => set({ timeframe }),
