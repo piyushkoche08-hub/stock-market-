@@ -5,11 +5,5 @@
       "source": "/(.*)",
       "destination": "/app.py"
     }
-  ],
-  "functions": {
-    "app.py": {
-      "maxDuration": 60,
-      "excludeFiles": "{client/**,scratch/**,backend/data/cache/**,__pycache__/**,**/__pycache__/**,**/*.pyc}"
-    }
-  }
+  ]
 }
