@@ -1,11 +1,15 @@
 {
-    "experimentalServices": {
-        "frontend": {
-            "routePrefix": "/"
-        },
-        "backend": {
-            "entrypoint": "backend",
-            "routePrefix": "/_/backend"
-        }
+  "$schema": "https://json.schemastore.org/vercel",
+  "rewrites": [
+    {
+      "source": "/(.*)",
+      "destination": "/app.py"
     }
+  ],
+  "functions": {
+    "app.py": {
+      "maxDuration": 60,
+      "excludeFiles": "{client/**,scratch/**,backend/data/cache/**,__pycache__/**,**/__pycache__/**,**/*.pyc}"
+    }
+  }
 }
