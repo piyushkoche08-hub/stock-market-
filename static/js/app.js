@@ -52,12 +52,13 @@ function setupEventListeners() {
     // Indicators
     document.querySelectorAll('.indicator-toggle').forEach(btn => {
         btn.addEventListener('click', (e) => {
-            const target = e.target.dataset.target;
-            const isActive = e.target.classList.toggle('active');
+            const target = e.currentTarget.dataset.target;
+            const isActive = e.currentTarget.classList.toggle('active');
             
             if (typeof toggleIndicator === 'function') {
                 toggleIndicator(target, isActive);
             }
+            syncAdvancedIndicatorVisibility();
         });
     });
 
@@ -140,6 +141,7 @@ function setupEventListeners() {
             }
         });
     }
+    syncAdvancedIndicatorVisibility();
 }
 
 async function handleSearch(query) {
@@ -369,6 +371,8 @@ async function loadStockData(ticker, period, interval, retries = 2) {
         document.getElementById('aiTrend').style.color = info.trend === 'Bullish' ? 'var(--success)' : (info.trend === 'Bearish' ? 'var(--danger)' : 'var(--text-muted)');
         document.getElementById('aiRec').innerText = info.recommendation || '--';
 
+        renderAdvancedIndicators(data.data);
+        renderIndicatorReadouts(data.data);
         updateChartData(data.data, data.predictions);
         showLoader(false);
 
@@ -387,8 +391,103 @@ async function loadStockData(ticker, period, interval, retries = 2) {
         if (typeof updateChartData === 'function') {
             updateChartData([], []);
         }
+        renderAdvancedIndicators([]);
+        renderIndicatorReadouts([]);
         alert("Failed to load stock data. Please check your network or try a different ticker.");
     }
+}
+
+function formatCompactValue(value, digits = 2) {
+    const n = Number(value);
+    if (!Number.isFinite(n)) return '--';
+    if (Math.abs(n) >= 10000000) return `${(n / 10000000).toFixed(1)}Cr`;
+    if (Math.abs(n) >= 100000) return `${(n / 100000).toFixed(1)}L`;
+    if (Math.abs(n) >= 1000) return `${(n / 1000).toFixed(1)}K`;
+    return n.toFixed(digits);
+}
+
+function renderIndicatorReadouts(rows) {
+    const last = Array.isArray(rows) && rows.length ? rows[rows.length - 1] : {};
+    const set = (id, value) => {
+        const el = document.getElementById(id);
+        if (el) el.textContent = value;
+    };
+    set('readout-ema20', formatCompactValue(last.EMA_20));
+    set('readout-ema50', formatCompactValue(last.EMA_50));
+    set('readout-vwap', formatCompactValue(last.VWAP));
+    set('readout-bb', last.Upper_BB && last.Lower_BB ? `${formatCompactValue(last.Upper_BB)} / ${formatCompactValue(last.Lower_BB)}` : '--');
+    set('readout-vol', formatCompactValue(last.Volume, 0));
+    set('readout-ai', last.RF_Confidence !== undefined ? `${formatCompactValue(last.RF_Confidence)}%` : '--');
+    set('readout-breakoutProb', last.Breakout_Prob !== undefined ? `${formatCompactValue(last.Breakout_Prob)}%` : '--');
+    set('readout-strategyZP', last.ZP_Strategy_Signal === 1 ? 'BUY' : last.ZP_Strategy_Signal === -1 ? 'SELL' : 'WAIT');
+}
+
+function syncAdvancedIndicatorVisibility() {
+    const breakoutActive = document.querySelector('.indicator-toggle[data-target="breakoutProb"]')?.classList.contains('active');
+    const strategyActive = document.querySelector('.indicator-toggle[data-target="strategyZP"]')?.classList.contains('active');
+    const breakoutCard = document.getElementById('breakoutCard');
+    const zpCard = document.getElementById('zpCard');
+    if (breakoutCard) breakoutCard.classList.toggle('is-muted', !breakoutActive);
+    if (zpCard) zpCard.classList.toggle('is-muted', !strategyActive);
+}
+
+function renderAdvancedIndicators(rows) {
+    const last = Array.isArray(rows) && rows.length ? rows[rows.length - 1] : {};
+    const setText = (id, value) => {
+        const el = document.getElementById(id);
+        if (el) el.textContent = value;
+    };
+    const setClass = (id, className) => {
+        const el = document.getElementById(id);
+        if (el) el.className = className;
+    };
+
+    if (!rows || rows.length === 0) {
+        setText('breakoutValue', '--%');
+        setText('breakoutStatus', 'Waiting');
+        setText('breakoutInsight', 'Waiting for chart data...');
+        const meter = document.getElementById('breakoutMeter');
+        if (meter) meter.style.width = '0%';
+        setText('zpTrend', 'Trend --');
+        setText('zpMomentum', 'Momentum --');
+        setText('zpVolume', 'Volume --');
+        setText('zpVerdict', 'NEUTRAL');
+        setText('zpStrength', '--%');
+        return;
+    }
+
+    const breakoutProb = Number(last.Breakout_Prob || 0);
+    const breakoutStatus = breakoutProb >= 70 ? 'High' : breakoutProb >= 40 ? 'Moderate' : 'Low';
+    setText('breakoutValue', `${breakoutProb.toFixed(2)}%`);
+    setText('breakoutStatus', breakoutStatus);
+    setText('breakoutInsight', breakoutProb >= 70
+        ? 'Squeeze, range pressure, and volume expansion are lining up.'
+        : breakoutProb >= 40
+            ? 'Breakout conditions are forming. Watch confirmation.'
+            : 'Range pressure is contained right now.'
+    );
+    const meter = document.getElementById('breakoutMeter');
+    if (meter) meter.style.width = `${Math.max(0, Math.min(100, breakoutProb))}%`;
+
+    const signal = Number(last.ZP_Strategy_Signal || 0);
+    const strength = Number(last.ZP_Strategy_Strength || 0);
+    const trendUp = last.Close > last.EMA_20 && last.EMA_20 > last.EMA_50;
+    const trendDown = last.Close < last.EMA_20 && last.EMA_20 < last.EMA_50;
+    const momUp = last.RSI > 60;
+    const momDown = last.RSI < 40;
+    const recent = rows.slice(-20).filter((row) => Number.isFinite(Number(row.Volume)));
+    const avgVolume = recent.length ? recent.reduce((sum, row) => sum + Number(row.Volume), 0) / recent.length : 0;
+    const volumeHot = avgVolume > 0 && Number(last.Volume || 0) / avgVolume > 1.1;
+
+    setText('zpTrend', `Trend ${trendUp ? 'UP' : trendDown ? 'DOWN' : 'FLAT'}`);
+    setText('zpMomentum', `Momentum ${momUp ? 'BULL' : momDown ? 'BEAR' : 'MID'}`);
+    setText('zpVolume', `Volume ${volumeHot ? 'CONFIRMED' : 'NORMAL'}`);
+    setClass('zpTrend', `zp-factor ${trendUp ? 'is-positive' : trendDown ? 'is-negative' : ''}`);
+    setClass('zpMomentum', `zp-factor ${momUp ? 'is-positive' : momDown ? 'is-negative' : ''}`);
+    setClass('zpVolume', `zp-factor span-2 ${volumeHot ? 'is-volume' : ''}`);
+    setText('zpVerdict', signal === 1 ? 'STRONG BUY' : signal === -1 ? 'STRONG SELL' : 'NEUTRAL / WAIT');
+    setText('zpStrength', `${strength.toFixed(2)}%`);
+    setClass('zpVerdict', signal === 1 ? 'is-buy' : signal === -1 ? 'is-sell' : 'is-neutral');
 }
 
 function formatMarketSummaryPrice(price, currency) {

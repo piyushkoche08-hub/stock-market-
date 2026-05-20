@@ -8,7 +8,7 @@ const TradingChart = () => {
   const chartRef = useRef();
   const seriesRef = useRef({});
   
-  const { data, predictions, indicators, loading } = useStore();
+  const { data, predictions, indicators, loading, ticker, timeframe } = useStore();
 
   useEffect(() => {
     if (!chartContainerRef.current) return;
@@ -27,6 +27,8 @@ const TradingChart = () => {
       crosshair: { mode: CrosshairMode.Normal },
       rightPriceScale: { borderColor: 'rgba(255, 255, 255, 0.1)' },
       timeScale: { borderColor: 'rgba(255, 255, 255, 0.1)', timeVisible: true },
+      width: chartContainerRef.current.clientWidth,
+      height: chartContainerRef.current.clientHeight,
     });
 
     chartRef.current = chart;
@@ -96,7 +98,10 @@ const TradingChart = () => {
     const updateOrSet = (seriesKey, dataMapper, filterFn = () => true) => {
       const s = seriesRef.current[seriesKey];
       if (!s) return;
-      const mapped = data.filter(filterFn).map(dataMapper);
+      const mapped = data.reduce((acc, item, index) => {
+        if (filterFn(item, index)) acc.push(dataMapper(item, index));
+        return acc;
+      }, []);
       if (mapped.length > 0) {
         // If it's a small update (last point), we could use .update(), 
         // but for indicators it's safer to .setData if the indicators are calculated on the whole set
@@ -135,6 +140,22 @@ const TradingChart = () => {
     handleDynamicIndicator('ema50', 'line', { color: '#f59e0b', lineWidth: 1.5, title: 'EMA 50' }, (d, i) => ({ time: timestamps[i], value: d.EMA_50 }), d => hasVal(d.EMA_50));
     handleDynamicIndicator('ema200', 'line', { color: '#ef4444', lineWidth: 1.5, title: 'EMA 200' }, (d, i) => ({ time: timestamps[i], value: d.EMA_200 }), d => hasVal(d.EMA_200));
     handleDynamicIndicator('vwap', 'line', { color: '#06b6d4', lineWidth: 1, title: 'VWAP' }, (d, i) => ({ time: timestamps[i], value: d.VWAP }), d => hasVal(d.VWAP) && d.VWAP !== 0);
+    
+    // SPECTRA Engine Rendering
+    handleDynamicIndicator('spectra', 'line', { color: '#ec4899', lineWidth: 2, title: 'SPECTRA Filt' }, (d, i) => ({ time: timestamps[i], value: d.SPECTRA_Filt }), d => hasVal(d.SPECTRA_Filt));
+
+    // Lux S/R Rendering
+    if (indicators.luxSR) {
+      if (!seriesRef.current.luxResist) {
+        seriesRef.current.luxResist = chart.addLineSeries({ color: 'rgba(239, 68, 68, 0.8)', lineWidth: 1, lineStyle: LineStyle.Dashed, title: 'Resistance' });
+        seriesRef.current.luxSupport = chart.addLineSeries({ color: 'rgba(34, 197, 94, 0.8)', lineWidth: 1, lineStyle: LineStyle.Dashed, title: 'Support' });
+      }
+      updateOrSet('luxResist', (d, i) => ({ time: timestamps[i], value: d.Lux_Resist }), d => hasVal(d.Lux_Resist));
+      updateOrSet('luxSupport', (d, i) => ({ time: timestamps[i], value: d.Lux_Support }), d => hasVal(d.Lux_Support));
+    } else {
+      if (seriesRef.current.luxResist) { chart.removeSeries(seriesRef.current.luxResist); delete seriesRef.current.luxResist; }
+      if (seriesRef.current.luxSupport) { chart.removeSeries(seriesRef.current.luxSupport); delete seriesRef.current.luxSupport; }
+    }
     
     if (indicators.bb) {
       if (!seriesRef.current.bbUpper) {
@@ -180,6 +201,35 @@ const TradingChart = () => {
       delete seriesRef.current.breakoutProb;
     }
 
+    if (indicators.strategyZP) {
+      if (!seriesRef.current.strategyZPStrength) {
+        seriesRef.current.strategyZPStrength = chart.addHistogramSeries({
+          color: 'rgba(168, 85, 247, 0.55)',
+          priceScaleId: 'strategy-pane',
+          title: 'ZP Strength',
+        });
+        chart.priceScale('strategy-pane').applyOptions({
+          scaleMargins: { top: 0.72, bottom: 0.12 },
+          borderVisible: false,
+        });
+      }
+      seriesRef.current.strategyZPStrength.setData(data.map((d, i) => {
+        const signal = d.ZP_Strategy_Signal || 0;
+        return {
+          time: timestamps[i],
+          value: d.ZP_Strategy_Strength || 0,
+          color: signal === 1
+            ? 'rgba(0, 208, 156, 0.45)'
+            : signal === -1
+              ? 'rgba(235, 91, 60, 0.45)'
+              : 'rgba(148, 163, 184, 0.18)',
+        };
+      }));
+    } else if (seriesRef.current.strategyZPStrength) {
+      chart.removeSeries(seriesRef.current.strategyZPStrength);
+      delete seriesRef.current.strategyZPStrength;
+    }
+
     if (indicators.volume) {
       if (!seriesRef.current.volume) {
         seriesRef.current.volume = chart.addHistogramSeries({ color: '#26a69a', priceFormat: { type: 'volume' }, priceScaleId: '' });
@@ -195,34 +245,33 @@ const TradingChart = () => {
       delete seriesRef.current.volume;
     }
 
-    // --- NEW: ZP Strategy Markers Rendering ---
-    if (indicators.strategyZP && seriesRef.current.candles) {
-      const markers = data
-        .map((d, i) => {
-          if (d.ZP_Strategy_Signal === 1) {
-            return {
-              time: timestamps[i],
-              position: 'belowBar',
-              color: '#00D09C',
-              shape: 'arrowUp',
-              text: 'ZP BUY',
-            };
-          } else if (d.ZP_Strategy_Signal === -1) {
-            return {
-              time: timestamps[i],
-              position: 'aboveBar',
-              color: '#EB5B3C',
-              shape: 'arrowDown',
-              text: 'ZP SELL',
-            };
-          }
-          return null;
-        })
-        .filter(m => m !== null);
+    // --- Combined Markers Rendering ---
+    if (seriesRef.current.candles) {
+      const markers = [];
       
-      seriesRef.current.candles.setMarkers(markers);
-    } else if (seriesRef.current.candles) {
-      seriesRef.current.candles.setMarkers([]);
+      data.forEach((d, i) => {
+        const time = timestamps[i];
+        
+        // ZP Strategy Markers
+        if (indicators.strategyZP) {
+          if (d.ZP_Strategy_Signal === 1) {
+            markers.push({ time, position: 'belowBar', color: '#00D09C', shape: 'arrowUp', text: 'ZP BUY' });
+          } else if (d.ZP_Strategy_Signal === -1) {
+            markers.push({ time, position: 'aboveBar', color: '#EB5B3C', shape: 'arrowDown', text: 'ZP SELL' });
+          }
+        }
+        
+        // SPECTRA Markers (Cross signals)
+        if (indicators.spectra) {
+          if (d.SPECTRA_Cross === 1) {
+            markers.push({ time, position: 'belowBar', color: '#ec4899', shape: 'circle', text: 'S.BUY' });
+          } else if (d.SPECTRA_Cross === -1) {
+            markers.push({ time, position: 'aboveBar', color: '#ec4899', shape: 'circle', text: 'S.SELL' });
+          }
+        }
+      });
+      
+      seriesRef.current.candles.setMarkers(markers.sort((a, b) => a.time - b.time));
     }
 
     // AI Predictions

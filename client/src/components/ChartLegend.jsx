@@ -20,6 +20,20 @@ const ChartLegend = () => {
     { key: 'vwap', name: 'VWAP', color: '#06b6d4', value: lastPoint.VWAP },
     { key: 'bb', name: 'BB 20 2', color: '#94a3b8', value: lastPoint.Upper_BB ? `${lastPoint.Upper_BB.toFixed(1)} ${lastPoint.Lower_BB.toFixed(1)}` : null },
     { key: 'rsi', name: 'RSI 14', color: '#c084fc', value: lastPoint.RSI },
+    {
+      key: 'breakoutProb',
+      name: 'Breakout Expo',
+      color: '#f472b6',
+      value: lastPoint.Breakout_Prob !== undefined && lastPoint.Breakout_Prob !== null ? `${lastPoint.Breakout_Prob.toFixed?.(2) || lastPoint.Breakout_Prob}%` : null
+    },
+    {
+      key: 'strategyZP',
+      name: 'ZP Builder',
+      color: '#c084fc',
+      value: lastPoint.ZP_Strategy_Signal === 1 ? 'BUY' : (lastPoint.ZP_Strategy_Signal === -1 ? 'SELL' : 'WAIT')
+    },
+    { key: 'spectra', name: 'SPECTRA', color: '#ec4899', value: lastPoint.SPECTRA_Filt },
+    { key: 'luxSR', name: 'Lux S/R', color: '#8b5cf6', value: lastPoint.Lux_Resist ? `R: ${lastPoint.Lux_Resist.toFixed(1)} S: ${lastPoint.Lux_Support.toFixed(1)}` : null },
   ].filter(ind => indicators[ind.key]);
 
   return (

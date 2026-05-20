@@ -5,7 +5,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>AlphaPulse X | Institutional-Grade Trading Platform</title>
-    <link rel="stylesheet" href="/static/css/style.css?v=4">
+    <link rel="stylesheet" href="/static/css/style.css?v=6">
     <!-- FontAwesome for icons -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" crossorigin="anonymous" referrerpolicy="no-referrer">
     <!-- TradingView Lightweight Charts (Pinned to 4.1.1 for stability and Markers support) -->
@@ -84,15 +84,17 @@
                     
                     <div class="indicators-bar" style="display:flex; flex-wrap:wrap; align-items:center; gap:0.65rem; padding:0.85rem 1.5rem; border-top:1px solid rgba(147,197,253,0.45); border-bottom:1px solid rgba(147,197,253,0.45); overflow:visible; background:linear-gradient(180deg, rgba(15,23,42,0.98), rgba(15,23,42,0.92)); box-shadow: inset 0 1px 0 rgba(255,255,255,0.06), inset 0 -1px 0 rgba(255,255,255,0.06);">
                         <span style="color:#f8fafc; font-size:0.84rem; font-weight:900; letter-spacing:0.08em; align-self:center; margin-right:0.65rem; text-shadow:0 0 10px rgba(96,165,250,0.35);">INDICATORS:</span>
-                        <button class="indicator-toggle active" data-target="ema20" style="color:#ffffff; font-size:0.82rem;">EMA 20</button>
-                        <button class="indicator-toggle active" data-target="ema50" style="color:#ffffff; font-size:0.82rem;">EMA 50</button>
-                        <button class="indicator-toggle active" data-target="vwap" style="color:#ffffff; font-size:0.82rem;">VWAP</button>
-                        <button class="indicator-toggle active" data-target="bb" style="color:#ffffff; font-size:0.82rem;">Bollinger Bands</button>
-                        <button class="indicator-toggle active" data-target="vol" style="color:#ffffff; font-size:0.82rem;">Volume</button>
-                        <button class="indicator-toggle active" data-target="ai" style="color:#ffffff; font-size:0.82rem;">AI Signals</button>
+                        <button class="indicator-toggle active" data-target="ema20"><span class="ind-dot blue"></span><span>EMA 20</span><strong id="readout-ema20">--</strong></button>
+                        <button class="indicator-toggle active" data-target="ema50"><span class="ind-dot amber"></span><span>EMA 50</span><strong id="readout-ema50">--</strong></button>
+                        <button class="indicator-toggle active" data-target="vwap"><span class="ind-dot cyan"></span><span>VWAP</span><strong id="readout-vwap">--</strong></button>
+                        <button class="indicator-toggle active" data-target="bb"><span class="ind-dot slate"></span><span>Bollinger Bands</span><strong id="readout-bb">--</strong></button>
+                        <button class="indicator-toggle active" data-target="vol"><span class="ind-dot green"></span><span>Volume</span><strong id="readout-vol">--</strong></button>
+                        <button class="indicator-toggle active" data-target="ai"><span class="ind-dot emerald"></span><span>AI Signals</span><strong id="readout-ai">--</strong></button>
+                        <button class="indicator-toggle active indicator-toggle-premium" data-target="breakoutProb"><span class="ind-dot pink"></span><span>Breakout Probability Expo</span><strong id="readout-breakoutProb">--</strong></button>
+                        <button class="indicator-toggle active indicator-toggle-premium" data-target="strategyZP"><span class="ind-dot violet"></span><span>DIY Strategy Builder ZP</span><strong id="readout-strategyZP">--</strong></button>
                     </div>
                     <div style="position: relative; width: 100%; height: 400px;">
-                        <div id="tv-legend" style="position: absolute; top: 12px; left: 12px; z-index: 10; pointer-events: none; display: flex; flex-direction: column; gap: 4px; font-size: 12px; font-family: 'Inter', sans-serif;">
+                        <div id="tv-legend" class="tv-legend">
                             <!-- Dynamically populated by JS -->
                         </div>
                         <div id="tvchart" style="width: 100%; height: 100%;"></div>
@@ -131,6 +133,46 @@
                     </div>
                 </div>
 
+                <!-- Advanced Indicators -->
+                <div class="glass sidebar-section advanced-indicators-panel">
+                    <div class="advanced-indicator-card breakout-card" id="breakoutCard">
+                        <div class="advanced-card-header">
+                            <div>
+                                <span class="advanced-kicker">Breakout Probability Expo</span>
+                                <h3>Volatility Expansion</h3>
+                            </div>
+                            <i class="fa-solid fa-bolt"></i>
+                        </div>
+                        <div class="advanced-score-row">
+                            <span id="breakoutValue">--%</span>
+                            <strong id="breakoutStatus">Syncing</strong>
+                        </div>
+                        <div class="advanced-meter">
+                            <div id="breakoutMeter" class="advanced-meter-fill breakout-fill"></div>
+                        </div>
+                        <p id="breakoutInsight" class="advanced-insight">Waiting for chart data...</p>
+                    </div>
+
+                    <div class="advanced-indicator-card zp-card" id="zpCard">
+                        <div class="advanced-card-header">
+                            <div>
+                                <span class="advanced-kicker">DIY Custom Strategy Builder ZP</span>
+                                <h3>Strategy Matrix</h3>
+                            </div>
+                            <i class="fa-solid fa-sliders"></i>
+                        </div>
+                        <div class="zp-grid">
+                            <div class="zp-factor" id="zpTrend">Trend <strong>--</strong></div>
+                            <div class="zp-factor" id="zpMomentum">Momentum <strong>--</strong></div>
+                            <div class="zp-factor span-2" id="zpVolume">Volume <strong>--</strong></div>
+                        </div>
+                        <div class="advanced-score-row zp-verdict-row">
+                            <strong id="zpVerdict">NEUTRAL</strong>
+                            <span id="zpStrength">--%</span>
+                        </div>
+                    </div>
+                </div>
+
                 <!-- Top Movers -->
                 <div class="glass sidebar-section">
                     <h3>Top Gainers</h3>
@@ -156,7 +198,7 @@
         </div>
     </div>
 
-    <script src="/static/js/chart.js?v=3"></script>
-    <script src="/static/js/app.js?v=3"></script>
+    <script src="/static/js/chart.js?v=5"></script>
+    <script src="/static/js/app.js?v=5"></script>
 </body>
 </html>

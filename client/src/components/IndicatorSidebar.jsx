@@ -2,7 +2,7 @@ import React from 'react';
 import useStore from '../store/useStore';
 import { 
   Check, Activity, BarChart2, Zap, Shield, Waves, Info, 
-  TrendingUp, ArrowUpCircle, MousePointer2, Layers
+  TrendingUp, ArrowUpCircle, MousePointer2, Layers, Target, Gauge
 } from 'lucide-react';
 import { clsx } from 'clsx';
 import { twMerge } from 'tailwind-merge';
@@ -73,13 +73,45 @@ const IndicatorSidebar = () => {
       icon: <BarChart2 size={14} />,
       value: lastData.Volume ? (lastData.Volume / 1000).toFixed(1) + 'K' : null 
     },
+    {
+      key: 'breakoutProb',
+      name: 'Breakout Probability Expo',
+      desc: 'Volatility Expansion Model',
+      color: '#f472b6',
+      icon: <Gauge size={14} />,
+      value: lastData.Breakout_Prob !== undefined && lastData.Breakout_Prob !== null ? `${lastData.Breakout_Prob}%` : null
+    },
+    {
+      key: 'strategyZP',
+      name: 'Strategy Builder ZP',
+      desc: 'Trend Momentum Volume Logic',
+      color: '#c084fc',
+      icon: <Target size={14} />,
+      value: lastData.ZP_Strategy_Signal === 1 ? 'BUY' : (lastData.ZP_Strategy_Signal === -1 ? 'SELL' : 'WAIT')
+    },
     { 
       key: 'ai', 
       name: 'AI Alpha Signals', 
-      desc: 'ML Buy/Sell Alerts',
+      desc: 'ML Buy/Sell Alerts', 
       color: '#00D09C', 
       icon: <ArrowUpCircle size={14} />,
       value: lastData.RF_Confidence ? lastData.RF_Confidence.toFixed(1) + '%' : null 
+    },
+    { 
+      key: 'spectra', 
+      name: 'SPECTRA Engine', 
+      desc: 'Signal Processing DSP', 
+      color: '#ec4899', 
+      icon: <Activity size={14} />,
+      value: lastData.SPECTRA_Filt 
+    },
+    { 
+      key: 'luxSR', 
+      name: 'Lux S/R Levels', 
+      desc: 'Adaptive Pivot Zones', 
+      color: '#8b5cf6', 
+      icon: <Layers size={14} />,
+      value: lastData.Lux_Resist ? `R: ${lastData.Lux_Resist.toFixed(1)}` : null 
     },
   ];
 

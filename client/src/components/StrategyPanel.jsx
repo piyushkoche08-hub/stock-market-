@@ -9,10 +9,41 @@ function cn(...inputs) {
 }
 
 const StrategyPanel = () => {
-  const { info, data, indicators } = useStore();
+  const { data, indicators, loading, error } = useStore();
   const lastData = data[data.length - 1] || {};
 
   if (!indicators.strategyZP && !indicators.breakoutProb) return null;
+
+  if (loading && data.length === 0) {
+    return (
+      <div className="glass-panel p-5 border-purple-500/10">
+        <div className="flex items-center gap-2 mb-4">
+          <div className="p-1.5 bg-purple-500/10 rounded-lg text-purple-400">
+            <Activity size={14} className="animate-pulse" />
+          </div>
+          <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Advanced Indicators</span>
+        </div>
+        <div className="space-y-2">
+          <div className="h-7 rounded-lg bg-white/5 animate-pulse" />
+          <div className="h-7 rounded-lg bg-white/5 animate-pulse" />
+          <div className="h-2 rounded-full bg-white/5 animate-pulse" />
+        </div>
+      </div>
+    );
+  }
+
+  if (error && data.length === 0) {
+    return (
+      <div className="glass-panel p-5 border-danger/10">
+        <div className="flex items-center gap-2 text-danger">
+          <ShieldCheck size={14} />
+          <span className="text-[10px] font-black uppercase tracking-widest">Indicator data unavailable</span>
+        </div>
+      </div>
+    );
+  }
+
+  if (data.length === 0) return null;
 
   const breakoutProb = lastData.Breakout_Prob || 0;
   const zpSignal = lastData.ZP_Strategy_Signal || 0; // 1: Buy, -1: Sell, 0: Neutral
@@ -23,15 +54,17 @@ const StrategyPanel = () => {
   const isTrendDown = lastData.Close < lastData.EMA_20 && lastData.EMA_20 < lastData.EMA_50;
   const isMomUp = lastData.RSI > 60;
   const isMomDown = lastData.RSI < 40;
-  const isVolHigh = (lastData.Volume / (data.slice(-20).reduce((acc, d) => acc + d.Volume, 0) / 20)) > 1.1;
+  const recentVolume = data.slice(-20).filter((d) => Number.isFinite(d.Volume));
+  const avgVolume = recentVolume.length
+    ? recentVolume.reduce((acc, d) => acc + d.Volume, 0) / recentVolume.length
+    : 0;
+  const isVolHigh = avgVolume > 0 ? (lastData.Volume / avgVolume) > 1.1 : false;
 
   return (
     <div className="flex flex-col gap-4">
       {/* Breakout Probability Expo Section */}
       {indicators.breakoutProb && (
         <div className="glass-panel p-5 border-pink-500/10 relative overflow-hidden group">
-          <div className="absolute top-0 right-0 w-20 h-20 bg-pink-500/5 blur-3xl rounded-full -mr-10 -mt-10 group-hover:bg-pink-500/10 transition-colors" />
-          
           <div className="flex items-center gap-2 mb-4">
             <div className="p-1.5 bg-pink-500/10 rounded-lg text-pink-400">
               <Zap size={14} />
@@ -59,10 +92,10 @@ const StrategyPanel = () => {
             />
           </div>
           
-          <p className="mt-3 text-[10px] text-slate-500 leading-relaxed italic">
+          <p className="mt-3 text-[10px] text-slate-500 leading-relaxed">
             {breakoutProb > 70 
-              ? "Critical squeeze detected. High probability of explosive volatility expansion." 
-              : "Market consolidating within range. Watching for volume confirmation."}
+              ? "Squeeze and volume conditions are elevated." 
+              : "Range conditions remain contained."}
           </p>
         </div>
       )}
@@ -70,8 +103,6 @@ const StrategyPanel = () => {
       {/* DIY Custom Strategy Builder ZP Section */}
       {indicators.strategyZP && (
         <div className="glass-panel p-5 border-purple-500/10 relative overflow-hidden group">
-          <div className="absolute top-0 right-0 w-20 h-20 bg-purple-500/5 blur-3xl rounded-full -mr-10 -mt-10 group-hover:bg-purple-500/10 transition-colors" />
-          
           <div className="flex items-center gap-2 mb-4">
             <div className="p-1.5 bg-purple-500/10 rounded-lg text-purple-400">
               <Target size={14} />

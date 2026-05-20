@@ -297,6 +297,69 @@ def get_stock_data_service(ticker, period='2y', interval='1d'):
             print("Breakout Prob error:", e)
             df['Breakout_Prob'] = 0
 
+        # --- NEW INDICATOR: SPECTRA Signal Processing Engine (by SentioEdge / Ehlers inspired) ---
+        try:
+            # SuperSmoother Filter (recursive, using loop for precision)
+            def super_smoother(prices, period):
+                import math
+                a1 = math.exp(-1.414 * 3.14159 / period)
+                b1 = 2 * a1 * math.cos(1.414 * 3.14159 / period)
+                c2 = b1
+                c3 = -a1 * a1
+                c1 = 1 - c2 - c3
+                
+                res = np.zeros_like(prices)
+                for i in range(len(prices)):
+                    if i < 2:
+                        res[i] = prices[i]
+                    else:
+                        res[i] = c1 * (prices[i] + prices[i-1]) / 2 + c2 * res[i-1] + c3 * res[i-2]
+                return res
+
+            df['SPECTRA_Filt'] = super_smoother(df['Close'].values, 10)
+            df['SPECTRA_Mom'] = df['SPECTRA_Filt'].diff(2)
+            
+            # Signal: 1 (Buy) when Mom > 0, -1 (Sell) when Mom < 0
+            df['SPECTRA_Signal'] = np.where(df['SPECTRA_Mom'] > 0, 1, -1)
+            # Add a "Cross" signal for markers
+            df['SPECTRA_Cross'] = 0
+            df.loc[(df['SPECTRA_Signal'] == 1) & (df['SPECTRA_Signal'].shift(1) == -1), 'SPECTRA_Cross'] = 1
+            df.loc[(df['SPECTRA_Signal'] == -1) & (df['SPECTRA_Signal'].shift(1) == 1), 'SPECTRA_Cross'] = -1
+        except Exception as e:
+            print("SPECTRA error:", e)
+            df['SPECTRA_Filt'] = df['Close']
+            df['SPECTRA_Signal'] = 0
+            df['SPECTRA_Cross'] = 0
+
+        # --- NEW INDICATOR: LuxAlgo Support & Resistance (Pivot Based) ---
+        try:
+            lookback = 15
+            df['Pivot_H'] = df['High'].rolling(window=lookback*2+1, center=True).max()
+            df['Pivot_L'] = df['Low'].rolling(window=lookback*2+1, center=True).min()
+            
+            # Extract pivots
+            ph = np.where(df['High'] == df['Pivot_H'], df['High'], np.nan)
+            pl = np.where(df['Low'] == df['Pivot_L'], df['Low'], np.nan)
+            
+            # Forward fill the last known pivot to create levels
+            df['Lux_Resist'] = pd.Series(ph).ffill()
+            df['Lux_Support'] = pd.Series(pl).ffill()
+            
+            # ATR for zone calculation
+            df['TR'] = np.maximum(df['High'] - df['Low'], 
+                       np.maximum(abs(df['High'] - df['Close'].shift(1)), 
+                                 abs(df['Low'] - df['Close'].shift(1))))
+            df['ATR'] = df['TR'].rolling(window=14).mean()
+            
+            # Zones
+            df['Lux_Resist_Zone'] = df['Lux_Resist'] + (df['ATR'] * 0.5)
+            df['Lux_Support_Zone'] = df['Lux_Support'] - (df['ATR'] * 0.5)
+            
+        except Exception as e:
+            print("LuxAlgo S/R error:", e)
+            df['Lux_Resist'] = None
+            df['Lux_Support'] = None
+
         # --- NEW INDICATOR: DIY Custom Strategy Builder ZP ---
         # A composite "Zero Pitch" strategy: Trend (EMA) + Momentum (RSI) + Volume Confirmation
         try:
@@ -375,7 +438,9 @@ def get_stock_data_service(ticker, period='2y', interval='1d'):
             'Date', 'Open', 'High', 'Low', 'Close', 'Volume', 
             'EMA_20', 'EMA_50', 'EMA_200', 'MACD', 'MACD_Signal', 'MACD_Hist', 
             'RSI', 'Upper_BB', 'Lower_BB', 'VWAP', 'RF_Signal', 'RF_Confidence',
-            'Breakout_Prob', 'ZP_Strategy_Signal', 'ZP_Strategy_Strength'
+            'Breakout_Prob', 'ZP_Strategy_Signal', 'ZP_Strategy_Strength',
+            'SPECTRA_Filt', 'SPECTRA_Signal', 'SPECTRA_Cross',
+            'Lux_Resist', 'Lux_Support', 'Lux_Resist_Zone', 'Lux_Support_Zone'
         ]
         df = df[[c for c in keep_cols if c in df.columns]]
         

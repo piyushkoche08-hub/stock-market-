@@ -21,6 +21,8 @@ const useStore = create((set, get) => ({
     volume: true,
     breakoutProb: true,
     strategyZP: true,
+    spectra: true,
+    luxSR: true,
   },
 
   news: [],
