@@ -23,6 +23,20 @@ warnings.filterwarnings("ignore")
 from .cache import stock_cache, search_cache, trending_cache
 import difflib
 import requests
+from requests.adapters import HTTPAdapter
+from urllib3.util.retry import Retry
+
+# Custom Session to bypass Vercel/Deployment IP blocks from Yahoo Finance
+yf_session = requests.Session()
+retry = Retry(total=5, backoff_factor=1, status_forcelist=[403, 429, 500, 502, 503, 504])
+yf_session.mount('http://', HTTPAdapter(max_retries=retry))
+yf_session.mount('https://', HTTPAdapter(max_retries=retry))
+yf_session.headers.update({
+    "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+    "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8",
+    "Accept-Language": "en-US,en;q=0.5",
+    "Connection": "keep-alive"
+})
 
 # Simple Cache Storage
 _stock_cache = {}
@@ -67,7 +81,7 @@ def get_trending_stocks_service():
         # Mix of Indian and US
         sources = ["RELIANCE.NS", "TCS.NS", "HDFCBANK.NS", "AAPL", "TSLA", "NVDA", "BTC-USD"]
         for s in sources:
-            ticker_obj = yf.Ticker(s)
+            ticker_obj = yf.Ticker(s, session=yf_session)
             info = ticker_obj.fast_info
             trending.append({
                 "ticker": s,
@@ -158,7 +172,7 @@ def get_stock_data_service(ticker, period='2y', interval='1d'):
     for i, cand in enumerate(candidates):
         try:
             # Simple download without group_by to avoid MultiIndex complexity
-            df = yf.download(cand, period=period, interval=interval, progress=False)
+            df = yf.download(cand, period=period, interval=interval, progress=False, session=yf_session)
             
             # Handle possible MultiIndex (sometimes happens with yfinance)
             if isinstance(df.columns, pd.MultiIndex):
@@ -454,7 +468,7 @@ def get_stock_data_service(ticker, period='2y', interval='1d'):
                 info = cached_info
 
         if not info:
-            ticker_obj = yf.Ticker(resolved_ticker)
+            ticker_obj = yf.Ticker(resolved_ticker, session=yf_session)
             try:
                 # Use fast_info if available, else standard info
                 if hasattr(ticker_obj, 'fast_info'):
@@ -654,7 +668,7 @@ def get_stock_news_service(ticker):
         return cached, None
 
     try:
-        ticker_obj = yf.Ticker(ticker)
+        ticker_obj = yf.Ticker(ticker, session=yf_session)
         try:
             raw_news = ticker_obj.news or []
         except Exception:
@@ -717,7 +731,8 @@ def get_market_summary_service():
             price, change, sparkline = 0, 0, []
             try:
                 # Fetch slightly more data for a smoother sparkline
-                ticker_data = yf.Ticker(symbol).history(period="5d", interval="1h")
+                ticker_obj = yf.Ticker(symbol, session=yf_session)
+                ticker_data = ticker_obj.history(period="5d", interval="1h")
                 if not ticker_data.empty:
                     prices = ticker_data['Close'].dropna().tolist()
                     if len(prices) >= 2:
@@ -755,7 +770,7 @@ def get_top_movers_service():
         movers = []
         for t in tickers:
             try:
-                ticker_obj = yf.Ticker(t)
+                ticker_obj = yf.Ticker(t, session=yf_session)
                 hist = ticker_obj.history(period="2d")
                 if hist.empty or len(hist) < 2:
                     hist = ticker_obj.history(period="7d")
@@ -816,11 +831,11 @@ def get_sectors_service():
         }
         
         sector_data = []
-        for name, symbol in sectors.items():
+        for name, symbol in sector_symbols.items():
             change = 0.0
             try:
-                ticker_obj = yf.Ticker(symbol)
-                hist = ticker_obj.history(period="2d")
+                ticker_obj = yf.Ticker(symbol, session=yf_session)
+                hist = ticker_obj.history(period="5d")
                 if len(hist) >= 2:
                     price = hist['Close'].iloc[-1]
                     prev_price = hist['Close'].iloc[-2]
@@ -849,8 +864,7 @@ def get_market_category_service(category):
         
         # Batch download for speed and reliability
         try:
-            # period="2d" ensures we have enough data for change calculation
-            data = yf.download(tickers, period="5d", interval="1d", group_by='ticker', progress=False)
+            data = yf.download(tickers, period="5d", interval="1d", group_by='ticker', progress=False, session=yf_session)
         except:
             data = pd.DataFrame()
             
@@ -912,22 +926,23 @@ def get_general_news_service(category=None):
         elif category == "Indian Market":
             sources = ["RELIANCE.NS", "TCS.NS", "HDFCBANK.NS", "INFY.NS", "^NSEI"]
 
-        all_articles = []
+        all_news = []
         for s in sources:
             try:
-                raw = yf.Ticker(s).news or []
-                all_articles.extend(raw)
+                raw = yf.Ticker(s, session=yf_session).news or []
+                for a in raw[:4]:
+                    formatted = _parse_article(a)
+                    all_news.append(formatted)
             except:
                 continue
 
         # Deduplicate by title
         seen_titles = set()
         unique = []
-        for a in all_articles:
-            parsed = _parse_article(a)
-            if parsed["title"] and parsed["title"] not in seen_titles:
-                seen_titles.add(parsed["title"])
-                unique.append(parsed)
+        for a in all_news:
+            if a["title"] and a["title"] not in seen_titles:
+                seen_titles.add(a["title"])
+                unique.append(a)
 
         # Sort newest first
         unique.sort(key=lambda x: x.get("providerPublishTime", 0), reverse=True)
@@ -1089,7 +1104,7 @@ def _hydrate_quotes_fast(symbols: list[str]):
             out[s] = cached
             continue
         try:
-            t = yf.Ticker(s)
+            t = yf.Ticker(s, session=yf_session)
             f = getattr(t, "fast_info", {}) or {}
             last_price = clean_float(f.get("last_price", 0))
             prev = clean_float(f.get("previous_close", 0)) or last_price or 0
