@@ -12,3 +12,4 @@ requests==2.31.0
 Pillow>=10.2.0
 pytesseract>=0.3.10
 # Faster optional backends — see requirements-ocr-optional.txt
+gunicorn==21.2.0
