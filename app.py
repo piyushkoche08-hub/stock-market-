@@ -1,5 +1,6 @@
 from flask import Flask, render_template
 from flask_cors import CORS
+from flask_compress import Compress
 from backend.routes import api_bp
 import os
 
@@ -7,7 +8,11 @@ app = Flask(__name__,
             static_folder='static', 
             template_folder='templates')
 app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024  # portfolio screenshot OCR uploads
+app.config['COMPRESS_ALGORITHM'] = ['gzip', 'br']
+app.config['COMPRESS_MIN_SIZE'] = 500
+app.config['SEND_FILE_MAX_AGE_DEFAULT'] = 31536000  # 1 year static cache
 CORS(app)
+Compress(app)
 
 # Register API routes
 app.register_blueprint(api_bp)
