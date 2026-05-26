@@ -294,7 +294,30 @@ async function switchCategory(cat) {
 
 async function loadCategoryAssets(cat) {
     const body = document.getElementById('category-assets-body');
-    if (body) body.innerHTML = '<tr><td colspan="5" class="p-12 text-center"><div class="w-6 h-6 border-2 border-blue-500 border-t-transparent rounded-full animate-spin mx-auto mb-2"></div><span class="text-xs font-bold text-slate-500">UPDATING MARKET...</span></td></tr>';
+    if (body) {
+        const skeletonRow = `
+            <tr class="animate-pulse border-b border-white/5">
+                <td class="px-6 py-4">
+                    <div class="flex flex-col gap-2">
+                        <div class="h-4 bg-slate-700/50 rounded w-20"></div>
+                        <div class="h-3 bg-slate-800/50 rounded w-32"></div>
+                    </div>
+                </td>
+                <td class="px-6 py-4">
+                    <div class="h-4 bg-slate-700/50 rounded w-24"></div>
+                </td>
+                <td class="px-6 py-4 text-right">
+                    <div class="h-4 bg-slate-700/50 rounded w-16 inline-block"></div>
+                </td>
+                <td class="px-6 py-4 text-right">
+                    <div class="h-4 bg-slate-700/50 rounded w-20 inline-block"></div>
+                </td>
+                <td class="px-6 py-4 text-right">
+                    <div class="h-6 w-6 bg-slate-700/50 rounded-full inline-block"></div>
+                </td>
+            </tr>`;
+        body.innerHTML = Array(6).fill(skeletonRow).join('');
+    }
     
     try {
         const res = await fetch(`${API_BASE}/market-category/${encodeURIComponent(cat)}`);

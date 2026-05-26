@@ -72,6 +72,57 @@ def get_general_news():
     if error:
         return jsonify({"detail": error}), 500
     return jsonify(data)
+
+@api_bp.route("/quotes", methods=["GET"])
+def get_bulk_quotes():
+    symbols = request.args.get('symbols', '')
+    if not symbols:
+        return jsonify({})
+    ticker_list = [s.strip() for s in symbols.split(',') if s.strip()]
+    if not ticker_list:
+        return jsonify({})
+    try:
+        from .services import yf_session
+        import yfinance as yf
+        import pandas as pd
+        
+        # Limit to 50 max
+        ticker_list = ticker_list[:50]
+        
+        df = yf.download(ticker_list, period="5d", interval="1d", progress=False, session=yf_session)
+        result = {}
+        
+        if df.empty or 'Close' not in df:
+            return jsonify({})
+            
+        close_df = df['Close']
+        if isinstance(close_df, pd.Series):
+            s = close_df.dropna()
+            sym = ticker_list[0]
+            if len(s) >= 2:
+                price = float(s.iloc[-1])
+                prev = float(s.iloc[-2])
+                change = ((price - prev) / prev) * 100 if prev else 0
+                result[sym] = {"price": price, "change": change}
+            elif len(s) == 1:
+                result[sym] = {"price": float(s.iloc[-1]), "change": 0}
+        else:
+            for sym in ticker_list:
+                if sym in close_df:
+                    s = close_df[sym].dropna()
+                    if len(s) >= 2:
+                        price = float(s.iloc[-1])
+                        prev = float(s.iloc[-2])
+                        change = ((price - prev) / prev) * 100 if prev else 0
+                        result[sym] = {"price": price, "change": change}
+                    elif len(s) == 1:
+                        result[sym] = {"price": float(s.iloc[-1]), "change": 0}
+                        
+        return jsonify(result)
+    except Exception as e:
+        logger.exception("Bulk quotes failed")
+        return jsonify({"detail": str(e)}), 500
+
 @api_bp.route("/search", methods=["GET"])
 def search_stocks():
     query = request.args.get('q', '')

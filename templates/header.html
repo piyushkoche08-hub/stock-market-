@@ -424,6 +424,7 @@
             for (const row of pick) {
                 if (!row || !row.ticker) continue;
                 out.push({
+                    rawSym: row.ticker,
                     sym: shortSym(row.ticker),
                     name: (row.name || row.ticker).slice(0, 48),
                     catCls: def.cls,
@@ -441,10 +442,19 @@
             return;
         }
         const html = items.map(function (it) {
+            let priceHtml = '';
+            if (typeof it.price !== 'undefined') {
+                const isUp = it.change >= 0;
+                const color = isUp ? '#4ade80' : '#f87171';
+                const sign = isUp ? '+' : '';
+                priceHtml = '<span style="margin-left: 6px; font-weight: 700; font-size: 11px;">' + it.price.toFixed(2) + '</span>' +
+                            '<span style="margin-left: 4px; font-weight: 600; font-size: 10px; color: ' + color + ';">' + sign + it.change.toFixed(2) + '%</span>';
+            }
             return '<span class="ap-ticker-item">' +
                 '<span class="ap-ticker-cat ' + it.catCls + '">' + it.catLabel + '</span>' +
                 '<span class="ap-ticker-sym">' + esc(it.sym) + '</span>' +
                 '<span class="ap-ticker-name">' + esc(it.name) + '</span>' +
+                priceHtml +
                 '<span class="ap-ticker-spark" aria-hidden="true"></span>' +
                 '</span>';
         }).join('');
@@ -457,7 +467,24 @@
             if (!res.ok) throw new Error('bad');
             const data = await res.json();
             const items = buildItems(data.stocks || data);
-            if (items.length) {
+            
+            if (items.length > 0) {
+                const symbols = items.map(it => it.rawSym).join(',');
+                try {
+                    const qRes = await fetch(API + '/quotes?symbols=' + symbols);
+                    if (qRes.ok) {
+                        const quotes = await qRes.json();
+                        items.forEach(it => {
+                            if (quotes[it.rawSym]) {
+                                it.price = quotes[it.rawSym].price;
+                                it.change = quotes[it.rawSym].change;
+                            }
+                        });
+                    }
+                } catch (e) {
+                    console.error("Failed to fetch quotes", e);
+                }
+                
                 render(items);
                 return;
             }
