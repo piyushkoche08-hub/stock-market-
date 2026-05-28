@@ -1,6 +1,7 @@
 import logging
 from flask import Blueprint, request, jsonify
 from .services import (
+    extract_download_history,
     get_stock_data_service,
     get_stock_news_service,
     get_market_summary_service,
@@ -91,41 +92,30 @@ def get_bulk_quotes():
     if not ticker_list:
         return jsonify({})
     try:
-        from .services import yf_session
-        import yfinance as yf
+        from .services import yf_download
         import pandas as pd
         
         # Limit to 50 max
         ticker_list = ticker_list[:50]
         
-        df = yf.download(ticker_list, period="5d", interval="1d", progress=False, session=yf_session)
+        df = yf_download(ticker_list, period="5d", interval="1d", progress=False)
         result = {}
         
-        if df.empty or 'Close' not in df:
+        if df.empty:
             return jsonify({})
-            
-        close_df = df['Close']
-        if isinstance(close_df, pd.Series):
-            s = close_df.dropna()
-            sym = ticker_list[0]
-            if len(s) >= 2:
-                price = float(s.iloc[-1])
-                prev = float(s.iloc[-2])
+
+        for sym in ticker_list:
+            ticker_df = extract_download_history(df, sym, multi_ticker=len(ticker_list) > 1)
+            if ticker_df.empty:
+                continue
+            close = ticker_df["Close"].dropna()
+            if len(close) >= 2:
+                price = float(close.iloc[-1])
+                prev = float(close.iloc[-2])
                 change = ((price - prev) / prev) * 100 if prev else 0
                 result[sym] = {"price": price, "change": change}
-            elif len(s) == 1:
-                result[sym] = {"price": float(s.iloc[-1]), "change": 0}
-        else:
-            for sym in ticker_list:
-                if sym in close_df:
-                    s = close_df[sym].dropna()
-                    if len(s) >= 2:
-                        price = float(s.iloc[-1])
-                        prev = float(s.iloc[-2])
-                        change = ((price - prev) / prev) * 100 if prev else 0
-                        result[sym] = {"price": price, "change": change}
-                    elif len(s) == 1:
-                        result[sym] = {"price": float(s.iloc[-1]), "change": 0}
+            elif len(close) == 1:
+                result[sym] = {"price": float(close.iloc[-1]), "change": 0}
                         
         return jsonify(result)
     except Exception as e:
