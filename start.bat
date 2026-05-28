@@ -10,7 +10,7 @@ echo  Checking Python...
 python --version
 echo.
 echo  Installing/Checking dependencies...
-pip install flask flask-cors yfinance pandas numpy scikit-learn requests -q
+pip install -r requirements.txt -q
 echo.
 echo  Starting Flask server on http://localhost:8000
 echo  Press Ctrl+C to stop.

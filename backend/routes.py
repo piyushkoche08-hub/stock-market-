@@ -41,6 +41,15 @@ def get_market_summary():
         return jsonify({"detail": error}), 500
     return jsonify(data)
 
+
+@api_bp.route("/indices", methods=["GET"])
+def get_indices():
+    data, error = get_market_summary_service()
+    if error:
+        return jsonify({"detail": error}), 500
+    wanted = {"NIFTY 50", "SENSEX", "NASDAQ", "S&P 500"}
+    return jsonify([item for item in data.get("summary", []) if item.get("name") in wanted])
+
 @api_bp.route("/top-movers", methods=["GET"])
 def get_top_movers():
     data, error = get_top_movers_service()

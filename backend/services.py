@@ -831,7 +831,7 @@ def get_sectors_service():
         }
         
         sector_data = []
-        for name, symbol in sector_symbols.items():
+        for name, symbol in sectors.items():
             change = 0.0
             try:
                 ticker_obj = yf.Ticker(symbol, session=yf_session)

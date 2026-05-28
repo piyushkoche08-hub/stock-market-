@@ -1,6 +1,5 @@
 const isLocalFile = window.location.protocol === 'file:';
 const API_BASE = isLocalFile ? 'http://127.0.0.1:8000/api' : '/api';
-const ROOT_API_BASE = isLocalFile ? 'http://127.0.0.1:8000' : '';
 
 const formatCurrency = (val, currency = 'INR', isIndex = false) => {
     if(!val && val !== 0) return '-';
@@ -198,7 +197,7 @@ function applyAssetsSearch() {
 
 async function loadMarketIndices() {
     try {
-        const res = await fetch(`${ROOT_API_BASE}/index`);
+        const res = await fetch(`${API_BASE}/indices`);
         const data = await res.json();
         const container = document.getElementById('top-indices-table-body');
         if (!container) return;
