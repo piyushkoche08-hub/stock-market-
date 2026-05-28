@@ -247,6 +247,101 @@
         border-radius: 50%;
         border: 1.5px solid #0b1326;
     }
+    .ap-alert-panel {
+        position: absolute;
+        top: calc(var(--ap-ticker-h, 38px) + var(--ap-header-h, 64px) - 8px);
+        right: 16px;
+        width: min(390px, calc(100vw - 24px));
+        max-height: min(560px, calc(100vh - 124px));
+        overflow: auto;
+        background: rgba(8, 15, 30, 0.98);
+        border: 1px solid rgba(148, 163, 184, 0.22);
+        border-radius: 8px;
+        box-shadow: 0 24px 70px rgba(0, 0, 0, 0.55);
+        z-index: 10000;
+        padding: 12px;
+    }
+    .ap-alert-panel.hidden { display: none; }
+    .ap-alert-head {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+        padding: 4px 4px 10px;
+        border-bottom: 1px solid rgba(255,255,255,0.08);
+    }
+    .ap-alert-title {
+        margin: 0;
+        color: #e2e8f0;
+        font-size: 13px;
+        font-weight: 900;
+        letter-spacing: 0.04em;
+        text-transform: uppercase;
+    }
+    .ap-alert-refresh {
+        border: 0;
+        background: rgba(37, 99, 235, 0.18);
+        color: #93c5fd;
+        border-radius: 7px;
+        width: 30px;
+        height: 30px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+    }
+    .ap-alert-list {
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+        padding-top: 10px;
+    }
+    .ap-alert-item {
+        display: grid;
+        grid-template-columns: 34px 1fr;
+        gap: 10px;
+        padding: 10px;
+        border-radius: 8px;
+        border: 1px solid rgba(255,255,255,0.08);
+        background: rgba(255,255,255,0.04);
+        color: #cbd5e1;
+        text-decoration: none;
+    }
+    .ap-alert-item:hover { border-color: rgba(96, 165, 250, 0.45); background: rgba(96, 165, 250, 0.08); }
+    .ap-alert-icon {
+        width: 34px;
+        height: 34px;
+        border-radius: 8px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        background: rgba(148, 163, 184, 0.12);
+        color: #cbd5e1;
+    }
+    .ap-alert-icon span { font-size: 18px; }
+    .ap-alert-item.is-positive .ap-alert-icon { background: rgba(34, 197, 94, 0.14); color: #4ade80; }
+    .ap-alert-item.is-negative .ap-alert-icon { background: rgba(239, 68, 68, 0.14); color: #f87171; }
+    .ap-alert-kicker {
+        margin: 0 0 3px;
+        color: #94a3b8;
+        font-size: 9px;
+        font-weight: 900;
+        letter-spacing: 0.12em;
+        text-transform: uppercase;
+    }
+    .ap-alert-main {
+        margin: 0;
+        color: #f1f5f9;
+        font-size: 12px;
+        font-weight: 800;
+        line-height: 1.35;
+    }
+    .ap-alert-body {
+        margin: 4px 0 0;
+        color: #94a3b8;
+        font-size: 11px;
+        line-height: 1.35;
+    }
     .ap-trade-btn {
         display: inline-flex;
         align-items: center;
@@ -311,6 +406,12 @@
             display: inline-block;
         }
         .ap-mobile-link.is-active { color: #60a5fa; }
+        .ap-alert-panel {
+            top: calc(var(--ap-ticker-h, 38px) + var(--ap-header-h, 64px) - 4px);
+            right: 8px;
+            width: calc(100vw - 16px);
+            max-height: calc(100vh - 168px);
+        }
     }
 </style>
 
@@ -351,10 +452,27 @@
         </nav>
 
         <div class="ap-actions">
-            <button class="ap-notif-btn" aria-label="Notifications">
+            <button id="ap-notif-btn" class="ap-notif-btn" aria-label="Notifications" aria-expanded="false" aria-controls="ap-alert-panel">
                 <span class="material-symbols-outlined">notifications</span>
-                <span class="ap-notif-dot"></span>
+                <span id="ap-notif-dot" class="ap-notif-dot"></span>
             </button>
+            <div id="ap-alert-panel" class="ap-alert-panel hidden" role="dialog" aria-label="Market notifications">
+                <div class="ap-alert-head">
+                    <p class="ap-alert-title">Market Alerts</p>
+                    <button id="ap-alert-refresh" class="ap-alert-refresh" aria-label="Refresh market alerts">
+                        <span class="material-symbols-outlined">refresh</span>
+                    </button>
+                </div>
+                <div id="ap-alert-list" class="ap-alert-list">
+                    <div class="ap-alert-item">
+                        <span class="ap-alert-icon"><span class="material-symbols-outlined">hourglass_top</span></span>
+                        <span>
+                            <p class="ap-alert-kicker">Loading</p>
+                            <p class="ap-alert-main">Fetching market trends and business updates...</p>
+                        </span>
+                    </div>
+                </div>
+            </div>
             <button class="ap-notif-btn ap-search-open" aria-label="Open search">
                 <span class="material-symbols-outlined">manage_search</span>
             </button>
@@ -503,5 +621,120 @@
 
     refresh();
     setInterval(refresh, 5 * 60 * 1000);
+})();
+</script>
+
+<script>
+(function () {
+    const btn = document.getElementById('ap-notif-btn');
+    const panel = document.getElementById('ap-alert-panel');
+    const list = document.getElementById('ap-alert-list');
+    const refreshBtn = document.getElementById('ap-alert-refresh');
+    const dot = document.getElementById('ap-notif-dot');
+    if (!btn || !panel || !list) return;
+
+    const API = (window.location.protocol === 'file:') ? 'http://127.0.0.1:8000/api' : '/api';
+    let loaded = false;
+    let loading = false;
+
+    function esc(s) {
+        return String(s == null ? '' : s)
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;')
+            .replace(/'/g, '&#39;');
+    }
+
+    function iconFor(type, severity) {
+        if (type === 'business') return 'newspaper';
+        if (type === 'trend') return severity === 'negative' ? 'trending_down' : 'trending_up';
+        return severity === 'negative' ? 'south_east' : 'north_east';
+    }
+
+    function fallbackAlerts() {
+        return [
+            { type: 'market', severity: 'neutral', title: 'NIFTY, SENSEX, NASDAQ and S&P trends', body: 'Open Markets for the full live overview.', link: '/markets' },
+            { type: 'business', severity: 'neutral', title: 'Business headlines are loading', body: 'News appears here automatically when the feed responds.', link: '/markets' },
+            { type: 'trend', severity: 'positive', title: 'Top movers and active stocks', body: 'Gainers, losers and active counters update from live market data.', link: '/markets' }
+        ];
+    }
+
+    function render(alerts) {
+        const rows = (alerts && alerts.length ? alerts : fallbackAlerts()).slice(0, 18);
+        list.innerHTML = rows.map(function (a) {
+            const severity = a.severity || 'neutral';
+            const type = a.type || 'market';
+            const link = a.link || '/markets';
+            return '<a class="ap-alert-item is-' + esc(severity) + '" href="' + esc(link) + '">' +
+                '<span class="ap-alert-icon"><span class="material-symbols-outlined">' + iconFor(type, severity) + '</span></span>' +
+                '<span>' +
+                    '<p class="ap-alert-kicker">' + esc(type) + '</p>' +
+                    '<p class="ap-alert-main">' + esc(a.title || 'Market update') + '</p>' +
+                    '<p class="ap-alert-body">' + esc(a.body || '') + '</p>' +
+                '</span>' +
+            '</a>';
+        }).join('');
+        if (dot) dot.style.display = rows.length ? 'block' : 'none';
+    }
+
+    async function loadAlerts(force) {
+        if (loading || (loaded && !force)) return;
+        loading = true;
+        try {
+            const res = await fetch(API + '/market-alerts');
+            if (!res.ok) throw new Error('alerts unavailable');
+            const data = await res.json();
+            render(data.alerts || []);
+            loaded = true;
+        } catch (e) {
+            render(fallbackAlerts());
+            loaded = true;
+        } finally {
+            loading = false;
+        }
+    }
+
+    function openPanel() {
+        panel.classList.remove('hidden');
+        btn.setAttribute('aria-expanded', 'true');
+        if (dot) dot.style.display = 'none';
+        loadAlerts(false);
+    }
+
+    function closePanel() {
+        panel.classList.add('hidden');
+        btn.setAttribute('aria-expanded', 'false');
+    }
+
+    btn.addEventListener('click', function (e) {
+        e.stopPropagation();
+        if (panel.classList.contains('hidden')) openPanel();
+        else closePanel();
+    });
+
+    if (refreshBtn) {
+        refreshBtn.addEventListener('click', function (e) {
+            e.preventDefault();
+            e.stopPropagation();
+            loaded = false;
+            list.innerHTML = '<div class="ap-alert-item"><span class="ap-alert-icon"><span class="material-symbols-outlined">sync</span></span><span><p class="ap-alert-kicker">Refreshing</p><p class="ap-alert-main">Updating market trends and business feed...</p></span></div>';
+            loadAlerts(true);
+        });
+    }
+
+    document.addEventListener('click', function (e) {
+        if (!panel.contains(e.target) && !btn.contains(e.target)) closePanel();
+    });
+
+    document.addEventListener('keydown', function (e) {
+        if (e.key === 'Escape') closePanel();
+    });
+
+    loadAlerts(false);
+    setInterval(function () {
+        loaded = false;
+        loadAlerts(true);
+    }, 10 * 60 * 1000);
 })();
 </script>

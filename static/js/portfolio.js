@@ -743,6 +743,26 @@ function renderAnalysisFromBasePortfolio() {
     `;
 }
 
+function isOcrSetupError(err) {
+    const msg = String((err && err.message) || err || '').toLowerCase();
+    return msg.includes('tesseract') ||
+        msg.includes('pytesseract') ||
+        msg.includes('rapidocr') ||
+        msg.includes('easyocr') ||
+        msg.includes('could not extract text') ||
+        msg.includes('missing python package');
+}
+
+function renderOcrFallbackAnalysis(err) {
+    renderAnalysisFromBasePortfolio();
+    const note = document.createElement('p');
+    note.className = 'text-xs text-tertiary mt-2';
+    note.textContent = 'Screenshot OCR is not available on this machine, so live portfolio holdings were analyzed instead. Install Tesseract OCR later for screenshot table extraction.';
+    elements.analysisResult.appendChild(note);
+    elements.analysisStatus.textContent = 'Screenshot OCR unavailable - showing live portfolio analysis.';
+    console.warn('OCR fallback used:', err);
+}
+
 function renderAnalysisFromScreenshot(ocrInsights, liveTickerData = []) {
     const resultBox = elements.analysisResult;
     const { tickers, currency, parsedRows } = ocrInsights;
@@ -946,6 +966,10 @@ async function analyzePortfolioNow() {
     } catch (err) {
         console.error('Screenshot analysis failed:', err);
         elements.analysisStatus.classList.remove('hidden');
+        if (isOcrSetupError(err)) {
+            renderOcrFallbackAnalysis(err);
+            return;
+        }
         elements.analysisStatus.textContent = `Screenshot analysis failed: ${err.message || 'Unknown error'}`;
         elements.analysisResult.classList.remove('hidden');
         elements.analysisResult.innerHTML = '<p class="text-sm text-error font-bold">Could not read this screenshot. Please upload a clearer portfolio image (png/jpg/webp).</p>';
